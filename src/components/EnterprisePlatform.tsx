@@ -1,0 +1,2253 @@
+import React, { useState, useCallback, useEffect } from 'react';
+import { 
+  ChevronRight, 
+  Settings, 
+  Code, 
+  Shield, 
+  TestTube, 
+  Rocket, 
+  Monitor, 
+  FileText, 
+  Download, 
+  Copy, 
+  Upload, 
+  CheckCircle, 
+  XCircle, 
+  AlertCircle, 
+  Award, 
+  RefreshCw, 
+  BarChart3, 
+  Home, 
+  Brain, 
+  MessageCircle, 
+  Lightbulb, 
+  ArrowRight,
+  Map,
+  Eye,
+  FileCheck
+} from 'lucide-react';
+import DiagramReview from './DiagramReview';
+import ArchitectureValidator from './ArchitectureValidator';
+import { callOpenAI } from '../services/openaiService';
+
+// Simple debounce function
+const debounce = (func: Function, wait: number) => {
+  let timeout: NodeJS.Timeout;
+  return function executedFunction(...args: any[]) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
+const EnterprisePlatform = () => {
+  const [activeTab, setActiveTab] = useState('consultant');
+  const [activeStep, setActiveStep] = useState(0);
+  const [workflowStep, setWorkflowStep] = useState(1); // 1: Consultant, 2: Review, 3: Generator, 4: Validator
+     const [projectConfig, setProjectConfig] = useState({
+     projectName: '',
+     projectType: 'microservices',
+     techStack: 'spring-boot',
+     database: 'postgresql',
+     messageQueue: 'kafka',
+     caching: 'redis',
+     monitoring: 'prometheus',
+     deployment: 'kubernetes',
+     securityLevel: 'standard',
+     scalingStrategy: 'manual-scaling',
+     dataRetention: '3-years',
+     compliance: [] as string[],
+     industry: 'general',
+     dataClassification: 'internal',
+     customRequirements: ''
+   });
+  
+  const [generatedPrompts, setGeneratedPrompts] = useState<any[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [validationResults, setValidationResults] = useState<any>(null);
+  const [isValidating, setIsValidating] = useState(false);
+  const [projectHistory, setProjectHistory] = useState<any[]>([]);
+  
+  // Architecture Consultant states
+  const [architectureRecommendations, setArchitectureRecommendations] = useState<any>(null);
+  const [consultantStep, setConsultantStep] = useState(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [showDiagramReview, setShowDiagramReview] = useState(false);
+  const [aiGenerationTime, setAiGenerationTime] = useState<string>('');
+  const [problemDescription, setProblemDescription] = useState({
+    projectDescription: '',
+    userVolume: '',
+    dataTypes: [],
+    industry: '',
+    performanceNeeds: '',
+    teamSize: '',
+    timeline: '',
+    budget: '',
+    specificRequirements: ''
+  });
+
+  // Simple update functions without useCallback
+  const updateProblemDescription = (updates: Partial<typeof problemDescription>) => {
+    setProblemDescription(prev => ({ ...prev, ...updates }));
+  };
+
+  const updateArchitectureRecommendations = (recommendations: any) => {
+    setArchitectureRecommendations(recommendations);
+    
+    console.log('🤖 AI Recommendations received:', recommendations);
+    
+    // Normalize compliance frameworks to match checkbox IDs
+    const normalizeCompliance = (complianceList: string[]) => {
+      if (!complianceList || !Array.isArray(complianceList)) return [];
+      
+      const complianceMap: { [key: string]: string } = {
+        'hipaa': 'hipaa',
+        'HIPAA': 'hipaa',
+        'HITECH': 'hitech',
+        'hitech': 'hitech',
+        'FDA': 'fda',
+        'fda': 'fda',
+        'SOX': 'sox',
+        'sox': 'sox',
+        'PCI': 'pci',
+        'pci': 'pci',
+        'PCI DSS': 'pci',
+        'GDPR': 'gdpr',
+        'gdpr': 'gdpr',
+        'CCPA': 'ccpa',
+        'ccpa': 'ccpa',
+        'ISO 27001': 'iso27001',
+        'ISO27001': 'iso27001',
+        'iso27001': 'iso27001',
+        'ISO 9001': 'iso9001',
+        'ISO9001': 'iso9001',
+        'iso9001': 'iso9001',
+        'ISO 28000': 'iso28000',
+        'ISO28000': 'iso28000',
+        'iso28000': 'iso28000',
+        'FedRAMP': 'fedramp',
+        'fedramp': 'fedramp',
+        'FISMA': 'fisma',
+        'fisma': 'fisma',
+        'NIST': 'nist',
+        'nist': 'nist',
+        'FERPA': 'ferpa',
+        'ferpa': 'ferpa',
+        'COPPA': 'coppa',
+        'coppa': 'coppa',
+        'DRM': 'drm',
+        'drm': 'drm',
+        'Copyright': 'copyright',
+        'copyright': 'copyright',
+        'Fair Housing': 'fair-housing',
+        'fair-housing': 'fair-housing',
+        'MLS Compliance': 'mls-compliance',
+        'mls-compliance': 'mls-compliance',
+        'ISO 26262': 'iso26262',
+        'ISO26262': 'iso26262',
+        'iso26262': 'iso26262',
+        'AUTOSAR': 'autosar',
+        'autosar': 'autosar',
+        'NERC CIP': 'nerc-cip',
+        'nerc-cip': 'nerc-cip',
+        'California Privacy': 'california-privacy',
+        'california-privacy': 'california-privacy',
+        'FCC': 'fcc',
+        'fcc': 'fcc',
+        'Attorney-Client Privilege': 'attorney-client-privilege',
+        'attorney-client-privilege': 'attorney-client-privilege',
+        'Data Retention': 'data-retention',
+        'data-retention': 'data-retention',
+        'ESRB': 'esrb',
+        'esrb': 'esrb',
+        'Food Safety': 'food-safety',
+        'food-safety': 'food-safety',
+        'Traceability': 'traceability',
+        'traceability': 'traceability'
+      };
+      
+      return complianceList
+        .map(comp => complianceMap[comp] || comp.toLowerCase())
+        .filter((comp, index, arr) => arr.indexOf(comp) === index); // Remove duplicates
+    };
+    
+    // Auto-populate project configuration with AI recommendations
+    if (recommendations) {
+      setProjectConfig(prev => {
+        const normalizedCompliance = normalizeCompliance(recommendations.compliance);
+        
+        const updatedConfig = {
+          ...prev,
+          projectType: recommendations.architecture || prev.projectType,
+          techStack: recommendations.techStack || prev.techStack,
+          database: recommendations.database || prev.database,
+          messageQueue: recommendations.messageQueue || prev.messageQueue,
+          caching: recommendations.caching || prev.caching,
+          deployment: recommendations.deployment || prev.deployment,
+          monitoring: recommendations.monitoring || prev.monitoring,
+          // Auto-check compliance recommendations (normalized)
+          compliance: normalizedCompliance.length > 0 ? normalizedCompliance : prev.compliance,
+          // Sync industry from problem description
+          industry: problemDescription.industry || prev.industry
+        };
+        
+        console.log('⚙️ Updated project config:', updatedConfig);
+        console.log('📋 Original compliance from AI:', recommendations.compliance);
+        console.log('📋 Normalized compliance:', normalizedCompliance);
+        
+        return updatedConfig;
+      });
+    }
+  };
+
+  const updateShowRecommendations = (show: boolean) => {
+    setShowRecommendations(show);
+  };
+
+  // Sync industry from problem description to project config
+  useEffect(() => {
+    if (problemDescription.industry && problemDescription.industry !== projectConfig.industry) {
+      console.log('🔄 Syncing industry from problem description:', problemDescription.industry);
+      handleIndustryChange(problemDescription.industry);
+    }
+  }, [problemDescription.industry]);
+
+  // Validate and enhance compliance recommendations based on industry
+  const validateAndEnhanceCompliance = (recommendations: any, industry: string) => {
+    console.log('🔍 Validating compliance for industry:', industry);
+    console.log('🔍 Original compliance:', recommendations.compliance);
+    
+    const industryComplianceMap: { [key: string]: string[] } = {
+      'healthcare': ['hipaa', 'hitech', 'fda'],
+      'financial': ['sox', 'pci', 'basel-iii', 'glba'],
+      'government': ['fedramp', 'fisma', 'nist'],
+      'education': ['ferpa', 'coppa'],
+      'manufacturing': ['iso27001', 'iso9001'],
+      'logistics': ['iso28000'],
+      'media': ['drm', 'copyright'],
+      'realestate': ['fair-housing', 'mls-compliance'],
+      'travel': ['pci', 'gdpr'],
+      'automotive': ['iso26262', 'autosar'],
+      'energy': ['nerc-cip', 'iso27001'],
+      'telecom': ['california-privacy', 'fcc'],
+      'legal': ['attorney-client-privilege', 'data-retention'],
+      'gaming': ['coppa', 'esrb'],
+      'agriculture': ['food-safety', 'traceability']
+    };
+
+    const currentCompliance = recommendations.compliance || [];
+    const requiredCompliance = industryComplianceMap[industry] || [];
+    
+    // Add missing industry-specific compliance
+    let enhancedCompliance = [...currentCompliance];
+    requiredCompliance.forEach(comp => {
+      if (!enhancedCompliance.some(c => c.toLowerCase().includes(comp.toLowerCase()))) {
+        enhancedCompliance.push(comp);
+      }
+    });
+
+    // Remove GDPR unless it's travel/financial/healthcare industry
+    if (!['travel', 'financial', 'healthcare'].includes(industry)) {
+      // Remove all GDPR variations
+      const gdprVariations = ['gdpr', 'general data protection', 'eu privacy'];
+      enhancedCompliance = enhancedCompliance.filter(comp => 
+        !gdprVariations.some(variation => comp.toLowerCase().includes(variation))
+      );
+      console.log('🔒 Removed GDPR variations for', industry, 'industry');
+    }
+
+    console.log('🔍 Enhanced compliance:', enhancedCompliance);
+    
+    return {
+      ...recommendations,
+      compliance: enhancedCompliance
+    };
+  };
+
+  // Workflow steps for better navigation
+  const workflowSteps = [
+    { 
+      id: 1, 
+      title: 'Architecture Consultant', 
+      subtitle: 'Define your project requirements',
+      icon: Brain,
+      description: 'Describe your project and get AI-powered architecture recommendations',
+      status: 'active' as const
+    },
+    { 
+      id: 2, 
+      title: 'Diagram Review', 
+      subtitle: 'Review and approve architecture',
+      icon: Eye,
+      description: 'Review generated diagrams and approve your architecture',
+      status: 'pending' as const
+    },
+    { 
+      id: 3, 
+      title: 'Standards Generator', 
+      subtitle: 'Generate development standards',
+      icon: Settings,
+      description: 'Create enterprise development standards and prompts',
+      status: 'pending' as const
+    },
+    { 
+      id: 4, 
+      title: 'Architecture Validator', 
+      subtitle: 'Validate your implementation',
+      icon: FileCheck,
+      description: 'Upload your code and validate against enterprise standards',
+      status: 'pending' as const
+    }
+  ];
+
+  // Update workflow step when architecture recommendations are generated
+  useEffect(() => {
+    if (architectureRecommendations && workflowStep === 1) {
+      setWorkflowStep(2);
+    }
+  }, [architectureRecommendations, workflowStep]);
+
+  // Update workflow step when diagram is approved
+  useEffect(() => {
+    if (activeTab === 'generator' && architectureRecommendations) {
+      setWorkflowStep(3);
+    }
+  }, [activeTab, architectureRecommendations]);
+
+  // Update workflow step when validation is accessed
+  useEffect(() => {
+    if (activeTab === 'validator') {
+      setWorkflowStep(4);
+    }
+  }, [activeTab]);
+
+  const mainTabs = [
+    { id: 'dashboard', title: 'Dashboard', icon: Home },
+    { id: 'consultant', title: 'Architecture Consultant', icon: Brain },
+    { id: 'generator', title: 'Standards Generator', icon: Settings },
+    { id: 'validator', title: 'Architecture Validator', icon: BarChart3 }
+  ];
+
+  const generatorSteps = [
+    { id: 'project', title: 'Project Setup', icon: Settings },
+    { id: 'compliance', title: 'Compliance', icon: Shield },
+    { id: 'architecture', title: 'Architecture', icon: Code },
+    { id: 'security', title: 'Security', icon: Shield },
+    { id: 'testing', title: 'Testing', icon: TestTube },
+    { id: 'deployment', title: 'CI/CD', icon: Rocket },
+    { id: 'monitoring', title: 'Monitoring', icon: Monitor },
+    { id: 'documentation', title: 'Documentation', icon: FileText },
+    { id: 'output', title: 'Generate', icon: Download }
+  ];
+
+  const complianceStandards = [
+    { id: 'sox', name: 'SOX (Sarbanes-Oxley)', description: 'Financial reporting and internal controls' },
+    { id: 'hipaa', name: 'HIPAA', description: 'Healthcare data protection' },
+    { id: 'hitech', name: 'HITECH', description: 'Health information technology standards' },
+    { id: 'fda', name: 'FDA', description: 'Food and Drug Administration regulations' },
+    { id: 'pci', name: 'PCI DSS', description: 'Payment card industry security' },
+    { id: 'basel-iii', name: 'Basel III', description: 'Banking regulatory framework' },
+    { id: 'glba', name: 'GLBA', description: 'Gramm-Leach-Bliley Act' },
+    { id: 'gdpr', name: 'GDPR', description: 'EU data protection regulation' },
+    { id: 'ccpa', name: 'CCPA', description: 'California consumer privacy act' },
+    { id: 'iso27001', name: 'ISO 27001', description: 'Information security management' },
+    { id: 'iso9001', name: 'ISO 9001', description: 'Quality management systems' },
+    { id: 'iso28000', name: 'ISO 28000', description: 'Supply chain security management' },
+    { id: 'fedramp', name: 'FedRAMP', description: 'Federal cloud security requirements' },
+    { id: 'fisma', name: 'FISMA', description: 'Federal information security' },
+    { id: 'nist', name: 'NIST', description: 'National Institute of Standards and Technology' },
+    { id: 'ferpa', name: 'FERPA', description: 'Family Educational Rights and Privacy Act' },
+    { id: 'coppa', name: 'COPPA', description: 'Children\'s Online Privacy Protection Act' },
+    { id: 'drm', name: 'DRM', description: 'Digital Rights Management' },
+    { id: 'copyright', name: 'Copyright', description: 'Intellectual property protection' },
+    { id: 'fair-housing', name: 'Fair Housing', description: 'Real estate anti-discrimination' },
+    { id: 'mls-compliance', name: 'MLS Compliance', description: 'Multiple Listing Service rules' },
+    { id: 'iso26262', name: 'ISO 26262', description: 'Automotive functional safety' },
+    { id: 'autosar', name: 'AUTOSAR', description: 'Automotive software architecture' },
+    { id: 'nerc-cip', name: 'NERC CIP', description: 'Critical infrastructure protection' },
+    { id: 'california-privacy', name: 'California Privacy', description: 'California privacy laws' },
+    { id: 'fcc', name: 'FCC', description: 'Federal Communications Commission' },
+    { id: 'attorney-client-privilege', name: 'Attorney-Client Privilege', description: 'Legal confidentiality' },
+    { id: 'data-retention', name: 'Data Retention', description: 'Legal data retention requirements' },
+    { id: 'esrb', name: 'ESRB', description: 'Entertainment Software Rating Board' },
+    { id: 'food-safety', name: 'Food Safety', description: 'Agricultural food safety standards' },
+    { id: 'traceability', name: 'Traceability', description: 'Supply chain traceability' }
+  ];
+
+  const handleComplianceChange = (compliance: string) => {
+    const newCompliance = projectConfig.compliance.includes(compliance)
+      ? projectConfig.compliance.filter(c => c !== compliance)
+      : [...projectConfig.compliance, compliance];
+    setProjectConfig({...projectConfig, compliance: newCompliance});
+  };
+
+  const handleIndustryChange = (industry: string) => {
+    // Auto-select compliance frameworks based on industry
+    const industryComplianceMap: { [key: string]: string[] } = {
+      'healthcare': ['hipaa', 'hitech', 'fda'],
+      'financial': ['sox', 'pci', 'basel-iii', 'glba'],
+      'government': ['fedramp', 'fisma', 'nist'],
+      'education': ['ferpa', 'coppa'],
+      'manufacturing': ['iso27001', 'iso9001'],
+      'logistics': ['iso28000'],
+      'media': ['drm', 'copyright'],
+      'realestate': ['fair-housing', 'mls-compliance'],
+      'travel': ['pci', 'gdpr'],
+      'automotive': ['iso26262', 'autosar'],
+      'energy': ['nerc-cip', 'iso27001'],
+      'telecom': ['california-privacy', 'fcc'],
+      'legal': ['attorney-client-privilege', 'data-retention'],
+      'gaming': ['coppa', 'esrb'],
+      'agriculture': ['food-safety', 'traceability']
+    };
+
+    const recommendedCompliance = industryComplianceMap[industry] || [];
+    
+    console.log('🏭 Industry changed to:', industry);
+    console.log('📋 Recommended compliance:', recommendedCompliance);
+    
+    setProjectConfig(prev => ({
+      ...prev,
+      industry: industry,
+      compliance: recommendedCompliance
+    }));
+  };
+
+  const generateComplianceRequirements = () => {
+    let requirements = [];
+    
+    if (projectConfig.compliance.includes('sox')) {
+      requirements.push(`SOX COMPLIANCE REQUIREMENTS:
+- Implement immutable audit trails for all financial data modifications
+- Segregation of duties with role-based access controls
+- Automated control testing and monitoring
+- Change management controls with approval workflows
+- Data retention policies for financial records (7+ years)
+- Internal controls documentation and testing procedures`);
+    }
+    
+    if (projectConfig.compliance.includes('hipaa')) {
+      requirements.push(`HIPAA COMPLIANCE REQUIREMENTS:
+- Encrypt all PHI (Protected Health Information) at rest and in transit
+- Implement access controls with minimum necessary principle
+- Audit logging for all PHI access and modifications
+- Business Associate Agreements (BAA) for third-party services
+- Risk assessment and vulnerability management procedures
+- Breach notification procedures and incident response plans
+- Employee training and access termination procedures`);
+    }
+    
+    if (projectConfig.compliance.includes('pci')) {
+      requirements.push(`PCI DSS COMPLIANCE REQUIREMENTS:
+- Never store sensitive authentication data (CVV, PIN)
+- Encrypt cardholder data using AES-256 or equivalent
+- Implement strong access control measures with unique IDs
+- Regular security testing and vulnerability assessments
+- Network segmentation to isolate cardholder data environment
+- Secure coding practices and regular security updates
+- File integrity monitoring and intrusion detection systems`);
+    }
+    
+    if (projectConfig.compliance.includes('gdpr')) {
+      requirements.push(`GDPR COMPLIANCE REQUIREMENTS:
+- Implement data subject rights (access, rectification, erasure, portability)
+- Privacy by design and by default principles
+- Data processing lawful basis documentation
+- Data Protection Impact Assessments (DPIA) for high-risk processing
+- Consent management with granular controls
+- Data breach notification procedures (72-hour requirement)
+- Data retention and deletion policies with automated enforcement`);
+    }
+    
+    return requirements.join('\n\n');
+  };
+
+  const handleGeneratePrompts = () => {
+    const prompts = [
+      {
+        phase: "Architecture Setup",
+        priority: "Critical",
+        prompt: `Create a ${projectConfig.projectType} architecture using ${projectConfig.techStack} with enterprise standards:
+
+CORE SERVICES SETUP:
+- Implement Clean Architecture with separate layers (presentation, application, domain, infrastructure)
+- Set up API Gateway with rate limiting, authentication, and request routing
+- Configure service discovery and load balancing
+- Implement ${projectConfig.database} database per service pattern with connection pooling
+- Set up ${projectConfig.messageQueue} for asynchronous communication with dead letter queues
+- Configure ${projectConfig.caching} for distributed caching with TTL policies
+
+ENTERPRISE PATTERNS:
+- Circuit breaker pattern for external service calls with fallback mechanisms
+- Retry logic with exponential backoff for transient failures
+- Health check endpoints for all services (/health, /ready, /metrics)
+- Correlation ID propagation across all service calls
+- Structured logging with JSON format and correlation tracking
+
+CODE QUALITY STANDARDS:
+- Implement dependency injection container
+- Set up exception handling middleware with proper error responses
+- Create base classes for controllers, services, and repositories
+- Include input validation with custom validators
+- Set up automatic API documentation generation`
+      },
+      {
+        phase: "Security Implementation",
+        priority: "Critical", 
+        prompt: `Implement comprehensive enterprise security framework:
+
+AUTHENTICATION & AUTHORIZATION:
+- OAuth 2.0 / OpenID Connect integration with JWT tokens
+- Refresh token rotation with secure storage
+- Role-based access control (RBAC) with fine-grained permissions
+- API key management for service-to-service communication
+- Session management with secure cookies and CSRF protection
+
+DATA PROTECTION:
+- AES-256 encryption for sensitive data at rest
+- TLS 1.3 for all communications in transit
+- Input validation and sanitization for all endpoints (OWASP guidelines)
+- SQL injection prevention with parameterized queries
+- XSS protection with content security policies
+
+SECURITY MONITORING:
+- Audit logging for all authentication attempts and data modifications
+- Failed login attempt detection with account lockout policies
+- Security event correlation and alerting
+- Vulnerability scanning integration in CI/CD pipeline
+- Security headers implementation (HSTS, CSP, X-Frame-Options)`
+      },
+      {
+        phase: "Testing Framework",
+        priority: "High",
+        prompt: `Set up comprehensive testing strategy following enterprise standards:
+
+UNIT TESTING (Target: 90% coverage):
+- Test framework setup with parallel execution
+- Mock all external dependencies (databases, APIs, message queues)
+- Test data builders and fixtures for consistent test scenarios
+- Parameterized tests for edge cases and boundary conditions
+- Performance unit tests for critical business logic
+
+INTEGRATION TESTING:
+- API contract testing for all endpoints with request/response validation
+- Database integration tests with test containers
+- Message queue integration testing with embedded brokers
+- External service integration tests with WireMock
+- Cross-service communication testing
+
+END-TO-END TESTING:
+- Critical user journey automation covering main business flows
+- Browser compatibility testing for web interfaces
+- API workflow testing covering complete business processes
+- Performance testing with load scenarios and stress testing
+- Security testing including OWASP Top 10 validation
+
+QUALITY GATES:
+- Automated test execution in CI pipeline
+- Code coverage reporting with quality gates
+- Test result aggregation and reporting
+- Flaky test detection and management`
+      },
+      {
+        phase: "CI/CD Pipeline",
+        priority: "Critical",
+        prompt: `Create enterprise-grade CI/CD pipeline with ${projectConfig.deployment}:
+
+CONTINUOUS INTEGRATION PIPELINE:
+stages:
+  - code-quality:
+      - Static code analysis (SonarQube)
+      - Dependency vulnerability scanning
+      - Code formatting and linting validation
+      - Unit test execution with coverage reporting
+  
+  - build-package:
+      - Multi-stage Docker build with layer optimization
+      - Container security scanning (Trivy/Snyk)
+      - Artifact versioning with semantic versioning
+      - Package signing and attestation
+  
+  - automated-testing:
+      - Integration test suite execution
+      - Performance benchmark validation
+      - Security testing (SAST/DAST)
+      - API contract validation
+
+CONTINUOUS DEPLOYMENT STRATEGY:
+- Blue-green deployment configuration for zero-downtime releases
+- Canary deployment with automated rollback triggers
+- Feature flag integration for gradual feature rollouts
+- Database migration automation with rollback procedures
+- Infrastructure as Code with Terraform/Helm charts
+- Environment promotion pipeline (DEV → QA → STAGING → PROD)
+
+MONITORING INTEGRATION:
+- Deployment success/failure notifications
+- Automated health checks post-deployment
+- Performance monitoring during deployments
+- Rollback automation based on error rate thresholds`
+      },
+      {
+        phase: "Observability Setup", 
+        priority: "High",
+        prompt: `Implement comprehensive observability with ${projectConfig.monitoring}:
+
+LOGGING STRATEGY:
+- Structured JSON logging with correlation IDs
+- Centralized log aggregation (ELK Stack or similar)
+- Log levels and filtering for production environments
+- PII data scrubbing from logs automatically
+- Log retention policies based on compliance requirements
+
+METRICS AND MONITORING:
+- Business metrics tracking (KPIs, conversion rates, user activity)
+- Technical health indicators (response time, throughput, error rates)
+- Infrastructure metrics (CPU, memory, disk, network)
+- Custom application metrics for business logic performance
+- SLA/SLO monitoring with alerting thresholds
+
+DISTRIBUTED TRACING:
+- Request correlation across all microservices
+- Performance bottleneck identification in service chains
+- Error propagation tracking and root cause analysis
+- Dependency mapping and service interaction visualization
+
+ALERTING AND INCIDENT RESPONSE:
+- Multi-level alerting (warning, critical, emergency)
+- Escalation procedures with on-call rotations
+- Automated incident creation and tracking
+- Runbook automation for common issues
+- Post-incident analysis and improvement tracking`
+      },
+      {
+        phase: "Documentation Framework",
+        priority: "High",
+        prompt: `Create comprehensive documentation suite for enterprise standards:
+
+PROJECT DOCUMENTATION:
+- README.md with quick start guide, prerequisites, and local development setup
+- CONTRIBUTING.md with code standards, pull request process, and development workflow
+- CHANGELOG.md with versioning strategy and release notes format
+- LICENSE file and compliance documentation
+- Project structure documentation with folder organization rationale
+
+ARCHITECTURE DOCUMENTATION:
+- Architecture Decision Records (ADRs) template and initial decisions
+- System architecture diagrams (C4 model: Context, Container, Component, Code)
+- Data flow diagrams and entity relationship diagrams
+- API design guidelines and OpenAPI/Swagger specifications
+- Service dependencies and integration points documentation
+- Security architecture and threat model documentation
+
+CODE DOCUMENTATION STANDARDS:
+- Inline code documentation standards (JSDoc, Javadoc, etc.)
+- Function and class documentation requirements
+- API endpoint documentation with examples
+- Database schema documentation with migration guides
+- Configuration management documentation
+- Error codes and troubleshooting guides
+
+OPERATIONAL DOCUMENTATION:
+- Deployment guides for each environment (dev, staging, production)
+- Infrastructure setup and configuration management
+- Monitoring and alerting runbooks
+- Incident response procedures and escalation paths
+- Backup and disaster recovery procedures
+- Performance tuning and optimization guidelines
+
+DEVELOPER ONBOARDING:
+- New developer setup checklist and environment configuration
+- Codebase walkthrough and key concepts explanation
+- Testing strategy and how to run tests locally
+- Debugging guides and common development issues
+- Code review checklist and quality standards
+- Development tools and IDE setup recommendations
+
+BUSINESS DOCUMENTATION:
+- Business requirements and user stories documentation
+- Domain model and business logic explanation
+- User acceptance criteria and testing scenarios
+- Stakeholder communication and reporting templates
+- Project roadmap and milestone tracking`
+      }
+    ];
+
+    if (projectConfig.compliance.length > 0) {
+      prompts.splice(2, 0, {
+        phase: "Compliance Implementation",
+        priority: "Critical",
+        prompt: `Implement comprehensive compliance framework for: ${projectConfig.compliance.join(', ')}
+
+${generateComplianceRequirements()}
+
+COMPLIANCE ARCHITECTURE PATTERNS:
+- Implement compliance-aware data models with classification tags
+- Create audit event sourcing for immutable compliance trails
+- Set up automated compliance monitoring and reporting
+- Implement data lifecycle management with automated retention/deletion
+- Create compliance dashboards and violation alerting
+- Set up regular compliance scanning and assessment automation
+
+DATA GOVERNANCE FRAMEWORK:
+- Data classification system (Public, Internal, Confidential, Restricted)
+- Data lineage tracking and impact analysis
+- Automated policy enforcement at application and database levels
+- Privacy-preserving data processing techniques (anonymization, pseudonymization)
+- Cross-border data transfer controls and documentation
+- Vendor risk assessment and third-party compliance validation
+
+COMPLIANCE TESTING:
+- Automated compliance rule testing in CI/CD pipeline
+- Compliance regression testing for policy changes
+- Data privacy impact testing for new features
+- Security control effectiveness testing
+- Compliance audit preparation and evidence collection automation`
+      });
+    }
+
+    setGeneratedPrompts(prompts);
+    setActiveStep(8);
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return 'text-green-600 bg-green-100';
+    if (score >= 75) return 'text-yellow-600 bg-yellow-100';
+    if (score >= 60) return 'text-orange-600 bg-orange-100';
+    return 'text-red-600 bg-red-100';
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  // Dashboard Component
+  const DashboardView = () => (
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-800">Total Projects</h3>
+              <p className="text-3xl font-bold text-blue-600">{projectHistory.length}</p>
+            </div>
+            <Code className="text-blue-600" size={32} />
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-800">Avg. Score</h3>
+              <p className="text-3xl font-bold text-green-600">
+                {projectHistory.length > 0 
+                  ? Math.round(projectHistory.reduce((acc, p) => acc + p.score, 0) / projectHistory.length)
+                  : '—'
+                }
+              </p>
+            </div>
+            <Award className="text-green-600" size={32} />
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-800">Compliance Ready</h3>
+              <p className="text-3xl font-bold text-purple-600">
+                {projectHistory.length > 0 
+                  ? projectHistory.filter(p => p.score >= 85).length
+                  : '—'
+                }
+              </p>
+            </div>
+            <Shield className="text-purple-600" size={32} />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-lg p-8">
+        <h2 className="text-2xl font-semibold text-slate-800 mb-6">Recent Projects</h2>
+        {projectHistory.length > 0 ? (
+          <div className="space-y-4">
+            {projectHistory.map(project => (
+              <div key={project.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                <div>
+                  <h3 className="font-semibold text-slate-800">{project.name}</h3>
+                  <p className="text-sm text-slate-600">
+                    Compliance: {project.compliance.join(', ')} • Last validated: {project.lastValidated}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className={`px-3 py-1 rounded-full text-sm font-bold ${getScoreColor(project.score)}`}>
+                    {project.score}/100
+                  </div>
+                  <button className="text-blue-600 hover:text-blue-800">View Details</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Code className="mx-auto text-slate-400 mb-4" size={48} />
+            <h3 className="text-xl font-semibold text-slate-700 mb-2">No Projects Yet</h3>
+            <p className="text-slate-500 mb-6 max-w-md mx-auto">
+              Start by getting architecture advice for your first project. 
+              Once you validate your implementation, projects will appear here.
+            </p>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+            >
+              Get Architecture Advice
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-8 text-white">
+        <h2 className="text-2xl font-bold mb-4">Ready to Start a New Project?</h2>
+        <p className="text-blue-100 mb-6">
+          Use the workflow navigation above to get started with your enterprise development project.
+        </p>
+        <div className="text-center">
+          <button
+            onClick={() => setActiveTab('consultant')}
+            className="px-8 py-3 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-semibold"
+          >
+            Start New Project
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+                                               // Simple Form Component with uncontrolled inputs to prevent focus loss
+    const ConsultantForm = ({ 
+      problemDescription, 
+      updateProblemDescription, 
+      updateArchitectureRecommendations,
+      updateShowRecommendations
+    }: {
+      problemDescription: any;
+      updateProblemDescription: (updates: any) => void;
+      updateArchitectureRecommendations: (recommendations: any) => void;
+      updateShowRecommendations: (show: boolean) => void;
+    }) => {
+      // Use refs for uncontrolled inputs
+      const projectDescriptionRef = React.useRef<HTMLTextAreaElement>(null);
+      const industryRef = React.useRef<HTMLSelectElement>(null);
+      const userVolumeRef = React.useRef<HTMLSelectElement>(null);
+
+      // Simple handlers that don't cause re-renders
+      const handleProjectDescriptionChange = () => {
+        if (projectDescriptionRef.current) {
+          updateProblemDescription({ projectDescription: projectDescriptionRef.current.value });
+        }
+      };
+
+      const handleIndustryChange = () => {
+        if (industryRef.current) {
+          updateProblemDescription({ industry: industryRef.current.value });
+        }
+      };
+
+      const handleUserVolumeChange = () => {
+        if (userVolumeRef.current) {
+          updateProblemDescription({ userVolume: userVolumeRef.current.value });
+        }
+      };
+
+     return (
+       <div className="max-w-2xl mx-auto space-y-6">
+         <div>
+           <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
+             What problem are you trying to solve?
+           </label>
+                                                                                               <textarea
+                ref={projectDescriptionRef}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                rows={4}
+                placeholder="e.g., Building a social media platform for healthcare professionals to share knowledge and connect..."
+                defaultValue={problemDescription.projectDescription}
+                onBlur={handleProjectDescriptionChange}
+              />
+         </div>
+
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           <div>
+             <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
+               Industry
+             </label>
+                                                                                                               <select 
+                  ref={industryRef}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  defaultValue={problemDescription.industry}
+                  onBlur={handleIndustryChange}
+                >
+               <option value="">Select Industry</option>
+               <option value="healthcare">Healthcare & Life Sciences</option>
+               <option value="financial">Financial Services & Banking</option>
+               <option value="education">Education & EdTech</option>
+               <option value="ecommerce">E-commerce & Retail</option>
+               <option value="social">Social Media & Networking</option>
+               <option value="enterprise">Enterprise Software & SaaS</option>
+               <option value="government">Government & Public Sector</option>
+               <option value="manufacturing">Manufacturing & Industrial</option>
+               <option value="logistics">Logistics & Supply Chain</option>
+               <option value="media">Media & Entertainment</option>
+               <option value="realestate">Real Estate & Property</option>
+               <option value="travel">Travel & Hospitality</option>
+               <option value="automotive">Automotive & Transportation</option>
+               <option value="energy">Energy & Utilities</option>
+               <option value="telecom">Telecommunications</option>
+               <option value="legal">Legal & Compliance</option>
+               <option value="nonprofit">Non-profit & NGO</option>
+               <option value="gaming">Gaming & Interactive</option>
+               <option value="agriculture">Agriculture & Food</option>
+               <option value="construction">Construction & Engineering</option>
+               <option value="other">Other</option>
+             </select>
+           </div>
+
+           <div>
+             <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
+               Expected Users
+             </label>
+                                                                                                               <select 
+                  ref={userVolumeRef}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  defaultValue={problemDescription.userVolume}
+                  onBlur={handleUserVolumeChange}
+                >
+               <option value="">Select Range</option>
+               <option value="1000">Less than 1,000</option>
+               <option value="10000">1K - 10K</option>
+               <option value="100000">10K - 100K</option>
+               <option value="1000000">100K - 1M</option>
+               <option value="10000000">1M+</option>
+             </select>
+           </div>
+         </div>
+
+                  <button
+           onClick={async () => {
+             // Get current values from state
+             const currentProjectDescription = problemDescription.projectDescription;
+             const currentIndustry = problemDescription.industry;
+             const currentUserVolume = problemDescription.userVolume;
+             
+             console.log('Button clicked!', { currentProjectDescription, currentIndustry, currentUserVolume });
+             
+             // Show loading state
+             setIsAnalyzing(true);
+             
+             try {
+               console.log('🤖 Starting OpenAI analysis...');
+               console.log('📝 Project Description:', currentProjectDescription);
+               console.log('🏭 Industry:', currentIndustry);
+               console.log('👥 Expected Users:', currentUserVolume);
+               
+               // OpenAI-powered intelligent recommendations
+               const generateAIRecommendations = async () => {
+                const userVolume = parseInt(currentUserVolume);
+                const industry = currentIndustry;
+                const description = currentProjectDescription;
+                
+                try {
+                  // Prepare the prompt for OpenAI
+                  const prompt = `You are an expert enterprise architect. Based on the following project requirements, provide detailed architecture recommendations in JSON format.
+
+Project Description: ${description}
+Industry: ${industry} (This is CRITICAL for compliance requirements)
+Expected Users: ${userVolume}
+
+IMPORTANT: For ${industry} industry, you MUST include the following compliance frameworks:
+${industry === 'healthcare' ? '- HIPAA (Health Insurance Portability and Accountability Act)' : ''}
+${industry === 'healthcare' ? '- HITECH (Health Information Technology for Economic and Clinical Health)' : ''}
+${industry === 'healthcare' ? '- FDA (Food and Drug Administration) requirements' : ''}
+${industry === 'financial' ? '- SOX (Sarbanes-Oxley Act)' : ''}
+${industry === 'financial' ? '- PCI DSS (Payment Card Industry Data Security Standard)' : ''}
+${industry === 'financial' ? '- Basel-III (Banking regulations)' : ''}
+${industry === 'financial' ? '- GLBA (Gramm-Leach-Bliley Act)' : ''}
+${industry === 'government' ? '- FedRAMP (Federal Risk and Authorization Management Program)' : ''}
+${industry === 'government' ? '- FISMA (Federal Information Security Management Act)' : ''}
+${industry === 'government' ? '- NIST (National Institute of Standards and Technology)' : ''}
+${industry === 'education' ? '- FERPA (Family Educational Rights and Privacy Act)' : ''}
+${industry === 'education' ? '- COPPA (Children\'s Online Privacy Protection Act)' : ''}
+
+Please provide recommendations in the following JSON structure:
+{
+  "architecture": "microservices|monolith|event-driven",
+  "techStack": "spring-boot|nodejs|python|golang",
+  "database": "postgresql|mongodb|timescaledb|neo4j|distributed-postgresql",
+  "messageQueue": "kafka|redis-streams|rabbitmq|mqtt",
+  "caching": "redis|redis-cluster|cdn-redis|redis-timeseries",
+  "deployment": "kubernetes|docker-compose|serverless|edge-computing",
+  "compliance": ["array", "of", "compliance", "frameworks"],
+  "securityLevel": "standard|enhanced|enterprise",
+  "scalingStrategy": "manual-scaling|auto-scaling|cdn-scaling|edge-scaling",
+  "dataRetention": "3-years|7-years",
+  "backupStrategy": "daily-incremental-weekly-full",
+  "disasterRecovery": "single-region|multi-region",
+  "performanceTargets": {
+    "responseTime": "50ms|200ms|500ms|1000ms|2000ms",
+    "throughput": "100-rps|500-rps|1000-rps|10000-rps|50000-rps",
+    "availability": "99.9%"
+  },
+  "testingStrategy": {
+    "unitCoverage": "90%|95%",
+    "integrationTests": "comprehensive|ml-pipeline|payment-gateway",
+    "e2eTests": "critical-paths|payment-flow",
+    "performanceTests": "basic|load-stress|load-stress-latency"
+  },
+  "additionalRecommendations": ["array", "of", "specific", "recommendations"],
+  "aiInsights": {
+    "complexity": "low|medium|high",
+    "riskLevel": "low|medium|high",
+    "estimatedTimeline": "3-6 months|6-12 months|12+ months",
+    "teamSize": "3-8 developers|8-15 developers|15+ developers",
+    "costEstimate": "$100K-$500K|$500K-$2M|$2M+"
+  }
+}
+
+Consider the industry requirements, user volume, and project description to make intelligent recommendations. Focus on enterprise-grade solutions with proper security, scalability, and compliance considerations.`;
+
+                  // Call OpenAI API using the service
+                  const data = await callOpenAI({
+                    prompt: prompt,
+                    max_tokens: 2000,
+                    temperature: 0.3
+                  });
+                  
+                  const aiResponse = data.choices?.[0]?.message?.content;
+                  
+                  if (!aiResponse) {
+                    throw new Error('Invalid AI response');
+                  }
+
+                  // Parse the JSON response from OpenAI
+                  let recommendations;
+                  try {
+                    // Extract JSON from the response (in case there's extra text)
+                    const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                      recommendations = JSON.parse(jsonMatch[0]);
+                    } else {
+                      recommendations = JSON.parse(aiResponse);
+                    }
+                  } catch (parseError) {
+                    console.error('Failed to parse AI response:', parseError);
+                    // Fallback to default recommendations
+                    recommendations = {
+                      architecture: 'microservices',
+                      techStack: 'spring-boot',
+                      database: 'postgresql',
+                      messageQueue: 'kafka',
+                      caching: 'redis',
+                      deployment: 'kubernetes',
+                      compliance: ['gdpr'],
+                      securityLevel: 'enterprise',
+                      scalingStrategy: 'auto-scaling',
+                      dataRetention: '3-years',
+                      backupStrategy: 'daily-incremental-weekly-full',
+                      disasterRecovery: 'multi-region',
+                      performanceTargets: {
+                        responseTime: '200ms',
+                        throughput: '10000-rps',
+                        availability: '99.9%'
+                      },
+                      testingStrategy: {
+                        unitCoverage: '90%',
+                        integrationTests: 'comprehensive',
+                        e2eTests: 'critical-paths',
+                        performanceTests: 'load-stress'
+                      },
+                      additionalRecommendations: [
+                        'Implement comprehensive monitoring and logging',
+                        'Set up CI/CD pipeline with automated testing',
+                        'Configure security scanning and vulnerability management'
+                      ],
+                      aiInsights: {
+                        complexity: 'high',
+                        riskLevel: 'medium',
+                        estimatedTimeline: '6-12 months',
+                        teamSize: '8-15 developers',
+                        costEstimate: '$500K-$2M'
+                      }
+                    };
+                  }
+
+                  return recommendations;
+                } catch (error) {
+                  console.error('OpenAI API error:', error);
+                  // Return fallback recommendations
+                  return {
+                    architecture: 'microservices',
+                    techStack: 'spring-boot',
+                    database: 'postgresql',
+                    messageQueue: 'kafka',
+                    caching: 'redis',
+                    deployment: 'kubernetes',
+                    compliance: ['gdpr'],
+                    securityLevel: 'enterprise',
+                    scalingStrategy: 'auto-scaling',
+                    dataRetention: '3-years',
+                    backupStrategy: 'daily-incremental-weekly-full',
+                    disasterRecovery: 'multi-region',
+                    performanceTargets: {
+                      responseTime: '200ms',
+                      throughput: '10000-rps',
+                      availability: '99.9%'
+                    },
+                    testingStrategy: {
+                      unitCoverage: '90%',
+                      integrationTests: 'comprehensive',
+                      e2eTests: 'critical-paths',
+                      performanceTests: 'load-stress'
+                    },
+                    additionalRecommendations: [
+                      'Implement comprehensive monitoring and logging',
+                      'Set up CI/CD pipeline with automated testing',
+                      'Configure security scanning and vulnerability management'
+                    ],
+                    aiInsights: {
+                      complexity: 'high',
+                      riskLevel: 'medium',
+                      estimatedTimeline: '6-12 months',
+                      teamSize: '8-15 developers',
+                      costEstimate: '$500K-$2M'
+                    }
+                  };
+                }
+             };
+             
+               const recommendations = await generateAIRecommendations();
+               console.log('✅ OpenAI Response Received:', recommendations);
+               console.log('🎯 AI-Generated Architecture:', recommendations.architecture);
+               console.log('⚙️ AI-Generated Tech Stack:', recommendations.techStack);
+               console.log('🔒 AI-Generated Compliance:', recommendations.compliance);
+               
+               // Validate and enhance compliance recommendations based on industry
+               const enhancedRecommendations = validateAndEnhanceCompliance(recommendations, currentIndustry);
+               console.log('🔒 Enhanced Compliance:', enhancedRecommendations.compliance);
+               
+               updateArchitectureRecommendations(enhancedRecommendations);
+               updateShowRecommendations(true);
+               setAiGenerationTime(new Date().toLocaleString());
+             } catch (error) {
+               console.error('❌ Error generating recommendations:', error);
+               alert('Failed to generate recommendations. Please try again.');
+             } finally {
+               setIsAnalyzing(false);
+             }
+           }}
+                                               disabled={!problemDescription.projectDescription || !problemDescription.industry || isAnalyzing}
+           className="w-full px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors font-semibold"
+         >
+           {isAnalyzing ? (
+             <div className="flex items-center justify-center">
+               <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+               Analyzing with AI...
+             </div>
+           ) : (
+             'Get Architecture Recommendations'
+           )}
+         </button>
+       </div>
+     );
+   };
+
+           // Simple Architecture Consultant Component
+    const ArchitectureConsultantView = ({ 
+      problemDescription, 
+      setProblemDescription, 
+      setProjectConfig, 
+      setActiveTab,
+      projectConfig,
+      showRecommendations,
+      setShowRecommendations,
+      architectureRecommendations,
+      setArchitectureRecommendations
+    }: {
+      problemDescription: any;
+      setProblemDescription: any;
+      setProjectConfig: any;
+      setActiveTab: any;
+      projectConfig: any;
+      showRecommendations: boolean;
+      setShowRecommendations: any;
+      architectureRecommendations: any;
+      setArchitectureRecommendations: any;
+    }) => {
+     // Show recommendations if they exist
+     if (showRecommendations && architectureRecommendations) {
+       return (
+         <div className="bg-white rounded-xl shadow-lg p-8">
+           <div className="text-center">
+             <Brain className="mx-auto text-purple-600 mb-6" size={64} />
+             <h2 className="text-3xl font-bold text-slate-800 mb-4">
+               Architecture Recommendations
+             </h2>
+             <div className="flex items-center justify-center mb-4">
+               <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center">
+                 <Brain size={16} className="mr-2" />
+                 Powered by OpenAI GPT-4
+               </div>
+             </div>
+             <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
+               Based on your project description, here are our AI-powered recommendations:
+             </p>
+             
+             <div className="max-w-4xl mx-auto space-y-6">
+               {/* Core Architecture */}
+               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                 <h3 className="text-xl font-semibold text-blue-800 mb-4">Core Architecture</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div className="space-y-3">
+                     <div className="flex justify-between">
+                       <span className="font-medium">Architecture Pattern:</span>
+                       <span className="text-blue-600 font-semibold">{architectureRecommendations.architecture}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Technology Stack:</span>
+                       <span className="text-blue-600 font-semibold">{architectureRecommendations.techStack}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Database:</span>
+                       <span className="text-blue-600 font-semibold">{architectureRecommendations.database}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Message Queue:</span>
+                       <span className="text-blue-600 font-semibold">{architectureRecommendations.messageQueue}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Caching:</span>
+                       <span className="text-blue-600 font-semibold">{architectureRecommendations.caching}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Deployment:</span>
+                       <span className="text-blue-600 font-semibold">{architectureRecommendations.deployment}</span>
+                     </div>
+                   </div>
+                   <div className="space-y-3">
+                     <div className="flex justify-between">
+                       <span className="font-medium">Security Level:</span>
+                       <span className="text-blue-600 font-semibold">{architectureRecommendations.securityLevel}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Scaling Strategy:</span>
+                       <span className="text-blue-600 font-semibold">{architectureRecommendations.scalingStrategy}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Data Retention:</span>
+                       <span className="text-blue-600 font-semibold">{architectureRecommendations.dataRetention}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Backup Strategy:</span>
+                       <span className="text-blue-600 font-semibold">{architectureRecommendations.backupStrategy}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Disaster Recovery:</span>
+                       <span className="text-blue-600 font-semibold">{architectureRecommendations.disasterRecovery}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Monitoring:</span>
+                       <span className="text-blue-600 font-semibold">{architectureRecommendations.monitoring}</span>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+
+               {/* Performance Targets */}
+               <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                 <h3 className="text-xl font-semibold text-green-800 mb-4">Performance Targets</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                   <div className="text-center">
+                     <div className="text-2xl font-bold text-green-600">{architectureRecommendations.performanceTargets.responseTime}</div>
+                     <div className="text-sm text-green-700">Response Time</div>
+                   </div>
+                   <div className="text-center">
+                     <div className="text-2xl font-bold text-green-600">{architectureRecommendations.performanceTargets.throughput}</div>
+                     <div className="text-sm text-green-700">Throughput</div>
+                   </div>
+                   <div className="text-center">
+                     <div className="text-2xl font-bold text-green-600">{architectureRecommendations.performanceTargets.availability}</div>
+                     <div className="text-sm text-green-700">Availability</div>
+                   </div>
+                 </div>
+               </div>
+
+               {/* Testing Strategy */}
+               <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                 <h3 className="text-xl font-semibold text-purple-800 mb-4">Testing Strategy</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                     <div className="flex justify-between">
+                       <span className="font-medium">Unit Coverage:</span>
+                       <span className="text-purple-600 font-semibold">{architectureRecommendations.testingStrategy.unitCoverage}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Integration Tests:</span>
+                       <span className="text-purple-600 font-semibold">{architectureRecommendations.testingStrategy.integrationTests}</span>
+                     </div>
+                   </div>
+                   <div className="space-y-2">
+                     <div className="flex justify-between">
+                       <span className="font-medium">E2E Tests:</span>
+                       <span className="text-purple-600 font-semibold">{architectureRecommendations.testingStrategy.e2eTests}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Performance Tests:</span>
+                       <span className="text-purple-600 font-semibold">{architectureRecommendations.testingStrategy.performanceTests}</span>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+
+               {/* AI Insights */}
+               <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+                 <h3 className="text-xl font-semibold text-indigo-800 mb-4">AI Project Insights</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div className="space-y-3">
+                     <div className="flex justify-between">
+                       <span className="font-medium">Project Complexity:</span>
+                       <span className={`font-semibold ${
+                         architectureRecommendations.aiInsights.complexity === 'high' ? 'text-red-600' : 'text-yellow-600'
+                       }`}>
+                         {architectureRecommendations.aiInsights.complexity.toUpperCase()}
+                       </span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Risk Level:</span>
+                       <span className={`font-semibold ${
+                         architectureRecommendations.aiInsights.riskLevel === 'high' ? 'text-red-600' : 'text-yellow-600'
+                       }`}>
+                         {architectureRecommendations.aiInsights.riskLevel.toUpperCase()}
+                       </span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Estimated Timeline:</span>
+                       <span className="text-indigo-600 font-semibold">{architectureRecommendations.aiInsights.estimatedTimeline}</span>
+                     </div>
+                   </div>
+                   <div className="space-y-3">
+                     <div className="flex justify-between">
+                       <span className="font-medium">Recommended Team Size:</span>
+                       <span className="text-indigo-600 font-semibold">{architectureRecommendations.aiInsights.teamSize}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="font-medium">Cost Estimate:</span>
+                       <span className="text-indigo-600 font-semibold">{architectureRecommendations.aiInsights.costEstimate}</span>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+
+               {/* Additional AI Recommendations */}
+               {architectureRecommendations.additionalRecommendations && architectureRecommendations.additionalRecommendations.length > 0 && (
+                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+                   <h3 className="text-xl font-semibold text-orange-800 mb-4">AI-Generated Additional Recommendations</h3>
+                   <div className="space-y-2">
+                     {architectureRecommendations.additionalRecommendations.map((rec: string, index: number) => (
+                       <div key={index} className="flex items-start">
+                         <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                         <span className="text-orange-700">{rec}</span>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               )}
+
+               {/* Compliance */}
+               {architectureRecommendations.compliance.length > 0 && (
+                 <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                   <h3 className="text-xl font-semibold text-red-800 mb-4">Compliance Requirements</h3>
+                   <div className="flex flex-wrap gap-2">
+                     {architectureRecommendations.compliance.map((comp: string) => (
+                       <span key={comp} className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+                         {comp.toUpperCase()}
+                       </span>
+                     ))}
+                   </div>
+                 </div>
+               )}
+             
+               <div className="flex space-x-4">
+                 <button
+                   onClick={() => {
+                     // Apply all recommendations to project config
+                     setProjectConfig({
+                       ...projectConfig,
+                                               projectName: problemDescription.projectDescription.split(' ').slice(0, 3).join('-').toLowerCase(),
+                       projectType: architectureRecommendations.architecture,
+                       techStack: architectureRecommendations.techStack,
+                       database: architectureRecommendations.database,
+                       messageQueue: architectureRecommendations.messageQueue,
+                       caching: architectureRecommendations.caching,
+                       monitoring: architectureRecommendations.monitoring,
+                       deployment: architectureRecommendations.deployment,
+                       compliance: architectureRecommendations.compliance,
+                                               industry: problemDescription.industry,
+                       dataClassification: architectureRecommendations.securityLevel === 'enterprise' ? 'confidential' : 'internal',
+                       customRequirements: `AI-Generated Requirements: Performance Targets: ${architectureRecommendations.performanceTargets.responseTime} response time, ${architectureRecommendations.performanceTargets.throughput} throughput, ${architectureRecommendations.performanceTargets.availability} availability. Testing: ${architectureRecommendations.testingStrategy.unitCoverage} unit coverage, ${architectureRecommendations.testingStrategy.integrationTests} integration tests, ${architectureRecommendations.testingStrategy.e2eTests} E2E tests, ${architectureRecommendations.testingStrategy.performanceTests} performance tests. Scaling: ${architectureRecommendations.scalingStrategy}. Data Retention: ${architectureRecommendations.dataRetention}. Backup: ${architectureRecommendations.backupStrategy}. Disaster Recovery: ${architectureRecommendations.disasterRecovery}. ${architectureRecommendations.additionalRecommendations ? 'Additional Recommendations: ' + architectureRecommendations.additionalRecommendations.join(', ') : ''} Project Insights: Complexity: ${architectureRecommendations.aiInsights.complexity}, Risk Level: ${architectureRecommendations.aiInsights.riskLevel}, Timeline: ${architectureRecommendations.aiInsights.estimatedTimeline}, Team Size: ${architectureRecommendations.aiInsights.teamSize}, Cost: ${architectureRecommendations.aiInsights.costEstimate}.`
+                     });
+                     setShowDiagramReview(true);
+                   }}
+                   className="flex-1 px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                 >
+                   Review Architecture & Generate Diagrams
+                 </button>
+                 <button
+                   onClick={() => {
+                     setShowRecommendations(false);
+                     setArchitectureRecommendations(null);
+                   }}
+                   className="flex-1 px-8 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors font-semibold"
+                 >
+                   Modify Requirements
+                 </button>
+               </div>
+               
+               {/* AI Generation Info */}
+               <div className="mt-8 pt-6 border-t border-gray-200">
+                 <div className="flex items-center justify-between text-sm text-gray-500">
+                   <div className="flex items-center">
+                     <Brain size={14} className="mr-2" />
+                     <span>Generated by OpenAI GPT-4</span>
+                   </div>
+                   <div className="flex items-center">
+                     <span>Generated at: {aiGenerationTime}</span>
+                   </div>
+                 </div>
+               </div>
+             </div>
+           </div>
+         </div>
+       );
+     }
+
+     // Show the form
+     return (
+       <div className="bg-white rounded-xl shadow-lg p-8">
+         <div className="text-center">
+           <Brain className="mx-auto text-purple-600 mb-6" size={64} />
+           <h2 className="text-3xl font-bold text-slate-800 mb-4">
+             AI Architecture Consultant
+           </h2>
+           <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
+             Describe your project and get intelligent architecture recommendations 
+             tailored to your specific requirements and constraints.
+           </p>
+           
+           <ConsultantForm 
+             problemDescription={problemDescription}
+             updateProblemDescription={updateProblemDescription}
+             updateArchitectureRecommendations={updateArchitectureRecommendations}
+             updateShowRecommendations={updateShowRecommendations}
+           />
+         </div>
+       </div>
+     );
+   };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="container mx-auto px-6 py-8">
+        <div className="text-center mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <div></div>
+            <h1 className="text-4xl font-bold text-slate-800">
+              Enterprise Development Platform
+            </h1>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Home size={16} className="mr-2" />
+              Dashboard
+            </button>
+          </div>
+          <p className="text-lg text-slate-600 max-w-3xl mx-auto">
+            Get AI-powered architecture recommendations, generate enterprise-standard development prompts, and validate your implementation.
+          </p>
+        </div>
+
+        {/* Workflow Progress Indicator */}
+        <div className="mb-8">
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-800">Project Workflow</h2>
+              <div className="flex items-center space-x-2">
+                <Map className="text-blue-600" size={20} />
+                <span className="text-sm text-slate-600">Step {workflowStep} of 4</span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {workflowSteps.map((step, index) => {
+                const Icon = step.icon;
+                const isActive = workflowStep === step.id;
+                const isCompleted = workflowStep > step.id;
+                const isAccessible = workflowStep >= step.id;
+                
+                return (
+                  <div
+                    key={step.id}
+                    className={`relative p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                      isActive 
+                        ? 'border-blue-600 bg-blue-50' 
+                        : isCompleted 
+                        ? 'border-green-600 bg-green-50' 
+                        : isAccessible 
+                        ? 'border-slate-300 bg-slate-50 hover:border-blue-400' 
+                        : 'border-slate-200 bg-slate-100 opacity-50'
+                    }`}
+                    onClick={() => {
+                      if (isAccessible) {
+                        if (step.id === 1) setActiveTab('consultant');
+                        if (step.id === 2 && architectureRecommendations) setShowDiagramReview(true);
+                        if (step.id === 3 && architectureRecommendations) setActiveTab('generator');
+                        if (step.id === 4) setActiveTab('validator');
+                      }
+                    }}
+                  >
+                    <div className="flex items-center mb-2">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
+                        isActive 
+                          ? 'bg-blue-600 text-white' 
+                          : isCompleted 
+                          ? 'bg-green-600 text-white' 
+                          : 'bg-slate-300 text-slate-600'
+                      }`}>
+                        {isCompleted ? (
+                          <CheckCircle size={20} />
+                        ) : (
+                          <Icon size={20} />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className={`font-semibold text-sm ${
+                          isActive ? 'text-blue-800' : isCompleted ? 'text-green-800' : 'text-slate-700'
+                        }`}>
+                          {step.title}
+                        </div>
+                        <div className="text-xs text-slate-500">{step.subtitle}</div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-slate-600">{step.description}</div>
+                    
+                    {isCompleted && (
+                      <div className="absolute top-2 right-2">
+                        <CheckCircle className="text-green-600" size={16} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Breadcrumb Navigation */}
+        <div className="mb-6">
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <div className="flex items-center space-x-2 text-sm">
+              <span className="text-slate-500">You are here:</span>
+              <span className="text-slate-700 font-medium">Enterprise Platform</span>
+              <ChevronRight className="text-slate-400" size={16} />
+              <span className="text-slate-700 font-medium">
+                {activeTab === 'consultant' && 'Architecture Consultant'}
+                {activeTab === 'dashboard' && 'Dashboard'}
+                {activeTab === 'generator' && 'Standards Generator'}
+                {activeTab === 'validator' && 'Architecture Validator'}
+              </span>
+              {showDiagramReview && (
+                <>
+                  <ChevronRight className="text-slate-400" size={16} />
+                  <span className="text-blue-600 font-medium">Diagram Review</span>
+                </>
+              )}
+              {activeTab === 'generator' && activeStep > 0 && (
+                <>
+                  <ChevronRight className="text-slate-400" size={16} />
+                  <span className="text-blue-600 font-medium">
+                    {generatorSteps[activeStep]?.title}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Navigation Tabs */}
+
+
+        <div className="max-w-6xl mx-auto">
+                     {/* Diagram Review Screen */}
+           {showDiagramReview && (
+             <div>
+               
+               <DiagramReview
+                 architectureRecommendations={architectureRecommendations}
+                 projectConfig={projectConfig}
+                 problemDescription={problemDescription}
+                 onApprove={() => {
+                   setShowDiagramReview(false);
+                   setActiveTab('generator');
+                   setWorkflowStep(3);
+                   // Show success message
+                   setTimeout(() => {
+                     alert('Architecture approved! Moving to Standards Generator...');
+                   }, 100);
+                 }}
+                 onReject={() => {
+                   setShowDiagramReview(false);
+                   setShowRecommendations(false);
+                   setArchitectureRecommendations(null);
+                   setWorkflowStep(1);
+                 }}
+                 onBackToRecommendations={() => {
+                   setShowDiagramReview(false);
+                 }}
+               />
+             </div>
+           )}
+          
+          {/* Architecture Consultant */}
+          {activeTab === 'consultant' && !showDiagramReview && (
+            <div>
+              <ArchitectureConsultantView 
+                key="consultant-view"
+                problemDescription={problemDescription}
+                setProblemDescription={setProblemDescription}
+                setProjectConfig={setProjectConfig}
+                setActiveTab={setActiveTab}
+                projectConfig={projectConfig}
+                showRecommendations={showRecommendations}
+                setShowRecommendations={setShowRecommendations}
+                architectureRecommendations={architectureRecommendations}
+                setArchitectureRecommendations={setArchitectureRecommendations}
+              />
+              
+              {/* Next Step Guidance */}
+              {!showRecommendations && (
+                <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-blue-800 mb-2">
+                        Next Step: Get Architecture Recommendations
+                      </h3>
+                      <p className="text-blue-700">
+                        Fill out the project requirements form above to receive AI-powered architecture recommendations tailored to your needs.
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Brain className="text-blue-600" size={24} />
+                      <ArrowRight className="text-blue-600" size={20} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {activeTab === 'dashboard' && !showDiagramReview && <DashboardView key="dashboard-view" />}
+          
+                     {activeTab === 'generator' && !showDiagramReview && (
+             <div>
+               {/* Success Banner from Diagram Review */}
+               {architectureRecommendations && (
+                 <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                   <div className="flex items-center">
+                     <CheckCircle className="text-green-600 mr-3" size={24} />
+                     <div>
+                       <h3 className="font-semibold text-green-800">Architecture Approved!</h3>
+                       <p className="text-sm text-green-700">
+                         Your architecture has been reviewed and approved. Now let's generate enterprise development standards.
+                       </p>
+                     </div>
+                   </div>
+                 </div>
+               )}
+               
+               {/* Progress Steps */}
+               <div className="flex flex-wrap items-center justify-between mb-8 bg-white rounded-lg p-4 shadow-sm">
+                {generatorSteps.map((step, index) => {
+                  const Icon = step.icon;
+                  return (
+                    <div key={step.id} className="flex items-center mb-2">
+                      <div 
+                        className={`flex items-center justify-center w-10 h-10 rounded-full cursor-pointer transition-all ${
+                          index <= activeStep 
+                            ? 'bg-blue-600 text-white' 
+                            : 'bg-slate-200 text-slate-500'
+                        }`}
+                        onClick={() => setActiveStep(index)}
+                      >
+                        <Icon size={20} />
+                      </div>
+                      <span className={`ml-2 text-sm font-medium ${
+                        index <= activeStep ? 'text-blue-600' : 'text-slate-500'
+                      }`}>
+                        {step.title}
+                      </span>
+                      {index < generatorSteps.length - 1 && (
+                        <ChevronRight className="ml-4 text-slate-400" size={16} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Generator Content */}
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                {activeStep < 8 && (
+                  <div className="p-8">
+                    <div className="flex items-center mb-6">
+                      <Settings className="text-blue-600 mr-3" size={24} />
+                      <h2 className="text-2xl font-semibold text-slate-800">
+                        {generatorSteps[activeStep].title} Configuration
+                      </h2>
+                    </div>
+
+                                         {/* Project Setup Step */}
+                     {activeStep === 0 && (
+                       <div className="space-y-6">
+                         <div>
+                           <label className="block text-sm font-medium text-slate-700 mb-2">
+                             Project Name
+                           </label>
+                           <input
+                             type="text"
+                             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                             placeholder="e.g., payment-service, user-management-api"
+                             value={projectConfig.projectName}
+                             onChange={(e) => setProjectConfig({...projectConfig, projectName: e.target.value})}
+                           />
+                         </div>
+                         
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div>
+                             <label className="block text-sm font-medium text-slate-700 mb-2">
+                               Architecture Pattern
+                             </label>
+                             <select 
+                               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               value={projectConfig.projectType}
+                               onChange={(e) => setProjectConfig({...projectConfig, projectType: e.target.value})}
+                             >
+                               <option value="">Choose Architecture Pattern</option>
+                               <option value="microservices">Microservices</option>
+                               <option value="monolith">Modular Monolith</option>
+                               <option value="serverless">Serverless</option>
+                               <option value="event-driven">Event-Driven Architecture</option>
+                             </select>
+                           </div>
+                           
+                           <div>
+                             <label className="block text-sm font-medium text-slate-700 mb-2">
+                               Technology Stack
+                             </label>
+                             <select 
+                               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               value={projectConfig.techStack}
+                               onChange={(e) => setProjectConfig({...projectConfig, techStack: e.target.value})}
+                             >
+                               <option value="">Choose Technology Stack</option>
+                               <option value="spring-boot">Spring Boot (Java)</option>
+                               <option value="nodejs">Node.js (Express)</option>
+                               <option value="dotnet">.NET Core</option>
+                               <option value="python">Python (FastAPI)</option>
+                               <option value="golang">Go (Gin)</option>
+                             </select>
+                           </div>
+                         </div>
+
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div>
+                             <label className="block text-sm font-medium text-slate-700 mb-2">
+                               Database
+                             </label>
+                             <select 
+                               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               value={projectConfig.database}
+                               onChange={(e) => setProjectConfig({...projectConfig, database: e.target.value})}
+                             >
+                               <option value="">Choose Database</option>
+                               <option value="none">No Database Required</option>
+                               <option value="postgresql">PostgreSQL</option>
+                               <option value="mysql">MySQL</option>
+                               <option value="mongodb">MongoDB</option>
+                               <option value="cassandra">Cassandra</option>
+                               <option value="timescaledb">TimescaleDB</option>
+                               <option value="neo4j">Neo4j (Graph)</option>
+                               <option value="distributed-postgresql">Distributed PostgreSQL</option>
+                             </select>
+                           </div>
+                           
+                           <div>
+                             <label className="block text-sm font-medium text-slate-700 mb-2">
+                               Message Queue
+                             </label>
+                             <select 
+                               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               value={projectConfig.messageQueue}
+                               onChange={(e) => setProjectConfig({...projectConfig, messageQueue: e.target.value})}
+                             >
+                               <option value="">Choose Message Queue</option>
+                               <option value="none">No Message Queue Required</option>
+                               <option value="kafka">Apache Kafka</option>
+                               <option value="rabbitmq">RabbitMQ</option>
+                               <option value="redis-streams">Redis Streams</option>
+                               <option value="aws-sqs">AWS SQS</option>
+                               <option value="mqtt">MQTT</option>
+                             </select>
+                           </div>
+                         </div>
+
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div>
+                             <label className="block text-sm font-medium text-slate-700 mb-2">
+                               Caching Solution
+                             </label>
+                             <select 
+                               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               value={projectConfig.caching}
+                               onChange={(e) => setProjectConfig({...projectConfig, caching: e.target.value})}
+                             >
+                               <option value="">Choose Caching Solution</option>
+                               <option value="none">No Caching Required</option>
+                               <option value="redis">Redis</option>
+                               <option value="memcached">Memcached</option>
+                               <option value="hazelcast">Hazelcast</option>
+                               <option value="elasticache">AWS ElastiCache</option>
+                               <option value="redis-cluster">Redis Cluster</option>
+                               <option value="cdn-redis">CDN + Redis</option>
+                               <option value="redis-timeseries">Redis TimeSeries</option>
+                             </select>
+                           </div>
+                           
+                           <div>
+                             <label className="block text-sm font-medium text-slate-700 mb-2">
+                               Deployment Strategy
+                             </label>
+                             <select 
+                               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               value={projectConfig.deployment}
+                               onChange={(e) => setProjectConfig({...projectConfig, deployment: e.target.value})}
+                             >
+                               <option value="">Choose Deployment Strategy</option>
+                               <option value="kubernetes">Kubernetes</option>
+                               <option value="docker-swarm">Docker Swarm</option>
+                               <option value="ecs">AWS ECS</option>
+                               <option value="cloud-run">Google Cloud Run</option>
+                               <option value="docker-compose">Docker Compose</option>
+                               <option value="serverless">Serverless</option>
+                               <option value="edge-computing">Edge Computing</option>
+                             </select>
+                           </div>
+                         </div>
+
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div>
+                             <label className="block text-sm font-medium text-slate-700 mb-2">
+                               Monitoring Stack
+                             </label>
+                             <select 
+                               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               value={projectConfig.monitoring}
+                               onChange={(e) => setProjectConfig({...projectConfig, monitoring: e.target.value})}
+                             >
+                               <option value="">Choose Monitoring Stack</option>
+                               <option value="none">No Monitoring Required</option>
+                               <option value="prometheus">Prometheus</option>
+                               <option value="prometheus-grafana">Prometheus + Grafana</option>
+                               <option value="datadog">Datadog</option>
+                               <option value="newrelic">New Relic</option>
+                               <option value="elastic">ELK Stack</option>
+                             </select>
+                           </div>
+                           
+                           <div>
+                             <label className="block text-sm font-medium text-slate-700 mb-2">
+                               Security Level
+                             </label>
+                             <select 
+                               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               value={projectConfig.securityLevel || 'standard'}
+                               onChange={(e) => setProjectConfig({...projectConfig, securityLevel: e.target.value})}
+                             >
+                               <option value="standard">Standard</option>
+                               <option value="enhanced">Enhanced</option>
+                               <option value="enterprise">Enterprise</option>
+                             </select>
+                           </div>
+                         </div>
+
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div>
+                             <label className="block text-sm font-medium text-slate-700 mb-2">
+                               Scaling Strategy
+                             </label>
+                             <select 
+                               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               value={projectConfig.scalingStrategy || 'manual-scaling'}
+                               onChange={(e) => setProjectConfig({...projectConfig, scalingStrategy: e.target.value})}
+                             >
+                               <option value="manual-scaling">Manual Scaling</option>
+                               <option value="auto-scaling">Auto Scaling</option>
+                               <option value="cdn-scaling">CDN Scaling</option>
+                               <option value="edge-scaling">Edge Scaling</option>
+                             </select>
+                           </div>
+                           
+                           <div>
+                             <label className="block text-sm font-medium text-slate-700 mb-2">
+                               Data Retention Policy
+                             </label>
+                             <select 
+                               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               value={projectConfig.dataRetention || '3-years'}
+                               onChange={(e) => setProjectConfig({...projectConfig, dataRetention: e.target.value})}
+                             >
+                               <option value="1-year">1 Year</option>
+                               <option value="3-years">3 Years</option>
+                               <option value="7-years">7 Years</option>
+                               <option value="indefinite">Indefinite</option>
+                             </select>
+                           </div>
+                         </div>
+                       </div>
+                     )}
+
+                    {/* Compliance Step */}
+                    {activeStep === 1 && (
+                      <div className="space-y-6">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-3">
+                            Compliance Requirements
+                          </label>
+                          <p className="text-sm text-slate-600 mb-4">
+                            Select all compliance standards that apply to your project.
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {complianceStandards.map((standard) => (
+                              <div 
+                                key={standard.id}
+                                className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                  projectConfig.compliance.includes(standard.id)
+                                    ? 'border-blue-500 bg-blue-50' 
+                                    : 'border-slate-200 hover:border-slate-300'
+                                }`}
+                                onClick={() => handleComplianceChange(standard.id)}
+                              >
+                                <div className="flex items-start">
+                                  <input
+                                    type="checkbox"
+                                    checked={projectConfig.compliance.includes(standard.id)}
+                                    onChange={() => handleComplianceChange(standard.id)}
+                                    className="mt-1 mr-3"
+                                  />
+                                  <div>
+                                    <h4 className="font-semibold text-slate-800">{standard.name}</h4>
+                                    <p className="text-sm text-slate-600">{standard.description}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                              Industry Sector
+                            </label>
+                            <select 
+                              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              value={projectConfig.industry}
+                              onChange={(e) => handleIndustryChange(e.target.value)}
+                            >
+                              <option value="general">General Technology</option>
+                              <option value="healthcare">Healthcare</option>
+                              <option value="financial">Financial Services</option>
+                              <option value="government">Government</option>
+                              <option value="education">Education</option>
+                              <option value="retail">Retail/E-commerce</option>
+                              <option value="manufacturing">Manufacturing</option>
+                              <option value="logistics">Logistics & Transportation</option>
+                              <option value="media">Media & Entertainment</option>
+                              <option value="realestate">Real Estate</option>
+                              <option value="travel">Travel & Hospitality</option>
+                              <option value="automotive">Automotive</option>
+                              <option value="energy">Energy & Utilities</option>
+                              <option value="telecom">Telecommunications</option>
+                              <option value="legal">Legal & Compliance</option>
+                              <option value="gaming">Gaming</option>
+                              <option value="agriculture">Agriculture</option>
+                            </select>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                              Data Classification
+                            </label>
+                            <select 
+                              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              value={projectConfig.dataClassification}
+                              onChange={(e) => setProjectConfig({...projectConfig, dataClassification: e.target.value})}
+                            >
+                              <option value="public">Public Data</option>
+                              <option value="internal">Internal Use</option>
+                              <option value="confidential">Confidential</option>
+                              <option value="restricted">Restricted/Sensitive</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                                         {/* Architecture Step */}
+                     {activeStep === 2 && (
+                       <div className="space-y-6">
+                         <div className="text-center py-12">
+                           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                             <Code className="text-blue-600" size={32} />
+                           </div>
+                           <h3 className="text-xl font-semibold text-slate-800 mb-2">
+                             Architecture Configuration Complete
+                           </h3>
+                           <p className="text-slate-600 mb-4">
+                             Your architecture settings have been configured in the Project Setup step. 
+                             You can review and modify them there if needed.
+                           </p>
+                           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                             <h4 className="font-semibold text-blue-800 mb-2">Current Architecture Settings:</h4>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-blue-700">
+                               <div><span className="font-medium">Pattern:</span> {projectConfig.projectType || 'Not selected'}</div>
+                               <div><span className="font-medium">Tech Stack:</span> {projectConfig.techStack || 'Not selected'}</div>
+                               <div><span className="font-medium">Database:</span> {projectConfig.database === 'none' ? 'Not required' : (projectConfig.database || 'Not selected')}</div>
+                               <div><span className="font-medium">Message Queue:</span> {projectConfig.messageQueue === 'none' ? 'Not required' : (projectConfig.messageQueue || 'Not selected')}</div>
+                               <div><span className="font-medium">Caching:</span> {projectConfig.caching === 'none' ? 'Not required' : (projectConfig.caching || 'Not selected')}</div>
+                               <div><span className="font-medium">Deployment:</span> {projectConfig.deployment || 'Not selected'}</div>
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                     )}
+
+                    {/* Other steps placeholder */}
+                    {(activeStep >= 3 && activeStep <= 7) && (
+                      <div className="text-center py-12">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                          <Settings className="text-blue-600" size={32} />
+                        </div>
+                        <h3 className="text-xl font-semibold text-slate-800 mb-2">
+                          {generatorSteps[activeStep].title} Standards
+                        </h3>
+                        <p className="text-slate-600 mb-4">
+                          Enterprise-grade {generatorSteps[activeStep].title.toLowerCase()} patterns will be included in your generated prompts.
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between mt-8">
+                      <button
+                        onClick={() => setActiveStep(Math.max(0, activeStep - 1))}
+                        disabled={activeStep === 0}
+                        className="px-6 py-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 disabled:opacity-50 transition-colors"
+                      >
+                        Previous
+                      </button>
+                      
+                      {activeStep < 7 ? (
+                        <button
+                          onClick={() => setActiveStep(activeStep + 1)}
+                          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Next
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleGeneratePrompts}
+                          className="px-8 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                        >
+                          Generate Enterprise Prompts
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Generated Prompts */}
+                {activeStep === 8 && generatedPrompts.length > 0 && (
+                  <div className="p-8">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-2xl font-semibold text-slate-800">
+                        Generated Enterprise Development Prompts
+                      </h2>
+                      <button
+                        onClick={() => setActiveTab('validator')}
+                        className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                      >
+                        <BarChart3 size={16} className="mr-2" />
+                        Validate Implementation
+                      </button>
+                    </div>
+
+                    <div className="space-y-6">
+                      {generatedPrompts.map((prompt, index) => (
+                        <div key={index} className="border border-slate-200 rounded-lg overflow-hidden">
+                          <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="text-lg font-semibold text-slate-800">
+                                  {prompt.phase}
+                                </h3>
+                                <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
+                                  prompt.priority === 'Critical' 
+                                    ? 'bg-red-100 text-red-800' 
+                                    : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {prompt.priority} Priority
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => copyToClipboard(prompt.prompt)}
+                                className="flex items-center px-3 py-1 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors"
+                              >
+                                <Copy size={14} className="mr-1" />
+                                Copy
+                              </button>
+                            </div>
+                          </div>
+                          <div className="p-6">
+                            <div className="text-sm text-slate-700 whitespace-pre-wrap bg-slate-50 p-4 rounded border overflow-x-auto">
+                              {prompt.prompt}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
+                      <h3 className="text-lg font-semibold text-blue-800 mb-2">
+                        Implementation Workflow
+                      </h3>
+                      <ol className="text-sm text-blue-700 space-y-1">
+                        <li>1. Use the Architecture Setup prompt first to establish the foundation</li>
+                        <li>2. Implement Security Framework before adding business logic</li>
+                        <li>3. Set up Testing Framework alongside development</li>
+                        <li>4. Configure CI/CD Pipeline for automated deployments</li>
+                        <li>5. Implement Observability for production monitoring</li>
+                        <li>6. Create comprehensive documentation using the Documentation Framework</li>
+                      </ol>
+                    </div>
+
+                    {projectConfig.compliance.length > 0 && (
+                      <div className="mt-6 p-6 bg-red-50 rounded-lg border border-red-200">
+                        <h3 className="text-lg font-semibold text-red-800 mb-2">
+                          Compliance Standards Included: {projectConfig.compliance.map(c => c.toUpperCase()).join(', ')}
+                        </h3>
+                        <p className="text-sm text-red-700">
+                          All generated prompts include specific requirements for the selected compliance standards.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Next Step Guidance */}
+              {activeStep === 8 && (
+                <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-green-800 mb-2">
+                        Next Step: Validate Your Implementation
+                      </h3>
+                      <p className="text-green-700">
+                        Now that you have your development standards, use the Architecture Validator to check your implementation against enterprise standards.
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <FileCheck className="text-green-600" size={24} />
+                      <ArrowRight className="text-green-600" size={20} />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <button
+                      onClick={() => setActiveTab('validator')}
+                      className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                    >
+                      <BarChart3 size={20} className="mr-2" />
+                      Go to Architecture Validator
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+                     {activeTab === 'validator' && !showDiagramReview && (
+             <div>
+               <ArchitectureValidator 
+                 onValidationComplete={(result) => {
+                   console.log('Validation completed:', result);
+                   // You can add additional logic here to handle validation results
+                 }}
+                 projectConfig={projectConfig}
+               />
+               
+               {/* Next Step Guidance */}
+               <div className="mt-8 bg-purple-50 border border-purple-200 rounded-lg p-6">
+                 <div className="flex items-center justify-between">
+                   <div>
+                     <h3 className="text-lg font-semibold text-purple-800 mb-2">
+                       Workflow Complete!
+                     </h3>
+                     <p className="text-purple-700">
+                       You've successfully completed the enterprise development workflow. Your architecture has been validated and you're ready for production deployment.
+                     </p>
+                   </div>
+                   <div className="flex items-center space-x-2">
+                     <Award className="text-purple-600" size={24} />
+                     <CheckCircle className="text-purple-600" size={20} />
+                   </div>
+                 </div>
+                 <div className="mt-4 flex space-x-4">
+                   <button
+                     onClick={() => {
+                       setActiveTab('consultant');
+                       setWorkflowStep(1);
+                       setArchitectureRecommendations(null);
+                       setShowRecommendations(false);
+                       setShowDiagramReview(false);
+                     }}
+                     className="flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+                   >
+                     <RefreshCw size={20} className="mr-2" />
+                     Start New Project
+                   </button>
+                   <button
+                     onClick={() => setActiveTab('dashboard')}
+                     className="flex items-center px-6 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors font-semibold"
+                   >
+                     <Home size={20} className="mr-2" />
+                     View Dashboard
+                   </button>
+                 </div>
+               </div>
+             </div>
+           )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EnterprisePlatform;
