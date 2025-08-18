@@ -24,7 +24,8 @@ import {
   ArrowRight,
   Map,
   Eye,
-  FileCheck
+  FileCheck,
+  Info
 } from 'lucide-react';
 import DiagramReview from './DiagramReview';
 import ArchitectureValidator from './ArchitectureValidator';
@@ -70,6 +71,9 @@ const EnterprisePlatform = () => {
   const [validationResults, setValidationResults] = useState<any>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [projectHistory, setProjectHistory] = useState<any[]>([]);
+  const [promptFilter, setPromptFilter] = useState('all');
+  const [expandedPrompts, setExpandedPrompts] = useState<Set<number>>(new Set());
+  const [showBestPractices, setShowBestPractices] = useState(false);
   
   // Architecture Consultant states
   const [architectureRecommendations, setArchitectureRecommendations] = useState<any>(null);
@@ -329,7 +333,9 @@ const EnterprisePlatform = () => {
     { id: 'dashboard', title: 'Dashboard', icon: Home },
     { id: 'consultant', title: 'Architecture Consultant', icon: Brain },
     { id: 'generator', title: 'Standards Generator', icon: Settings },
-    { id: 'validator', title: 'Architecture Validator', icon: BarChart3 }
+    { id: 'validator', title: 'Architecture Validator', icon: BarChart3 },
+    { id: 'how-it-works', title: 'How It Works', icon: Lightbulb },
+    { id: 'about', title: 'About', icon: Info }
   ];
 
   const generatorSteps = [
@@ -1461,9 +1467,9 @@ Consider the industry requirements, user volume, and project description to make
         <div className="text-center mb-8">
           <div className="flex justify-between items-center mb-4">
             <div></div>
-            <h1 className="text-4xl font-bold text-slate-800">
-              Enterprise Development Platform
-            </h1>
+                          <h1 className="text-4xl font-bold text-slate-800">
+                Previbe - Enterprise Development Platform
+              </h1>
             <button
               onClick={() => setActiveTab('dashboard')}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -1553,38 +1559,62 @@ Consider the industry requirements, user volume, and project description to make
           </div>
         </div>
 
-        {/* Breadcrumb Navigation */}
+        {/* Main Tab Navigation */}
         <div className="mb-6">
           <div className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="flex items-center space-x-2 text-sm">
-              <span className="text-slate-500">You are here:</span>
-              <span className="text-slate-700 font-medium">Enterprise Platform</span>
-              <ChevronRight className="text-slate-400" size={16} />
-              <span className="text-slate-700 font-medium">
-                {activeTab === 'consultant' && 'Architecture Consultant'}
-                {activeTab === 'dashboard' && 'Dashboard'}
-                {activeTab === 'generator' && 'Standards Generator'}
-                {activeTab === 'validator' && 'Architecture Validator'}
-              </span>
-              {showDiagramReview && (
-                <>
-                  <ChevronRight className="text-slate-400" size={16} />
-                  <span className="text-blue-600 font-medium">Diagram Review</span>
-                </>
-              )}
-              {activeTab === 'generator' && activeStep > 0 && (
-                <>
-                  <ChevronRight className="text-slate-400" size={16} />
-                  <span className="text-blue-600 font-medium">
-                    {generatorSteps[activeStep]?.title}
-                  </span>
-                </>
-              )}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-sm">
+                <span className="text-slate-500">You are here:</span>
+                <span className="text-slate-700 font-medium">Enterprise Platform</span>
+                <ChevronRight className="text-slate-400" size={16} />
+                <span className="text-slate-700 font-medium">
+                  {activeTab === 'consultant' && 'Architecture Consultant'}
+                  {activeTab === 'dashboard' && 'Dashboard'}
+                  {activeTab === 'generator' && 'Standards Generator'}
+                  {activeTab === 'validator' && 'Architecture Validator'}
+                  {activeTab === 'how-it-works' && 'How It Works'}
+                  {activeTab === 'about' && 'About'}
+                </span>
+                {showDiagramReview && (
+                  <>
+                    <ChevronRight className="text-slate-400" size={16} />
+                    <span className="text-blue-600 font-medium">Diagram Review</span>
+                  </>
+                )}
+                {activeTab === 'generator' && activeStep > 0 && (
+                  <>
+                    <ChevronRight className="text-slate-400" size={16} />
+                    <span className="text-blue-600 font-medium">
+                      {generatorSteps[activeStep]?.title}
+                    </span>
+                  </>
+                )}
+              </div>
+              
+              {/* Tab Navigation */}
+              <div className="flex space-x-1">
+                {mainTabs.filter(tab => ['dashboard', 'about', 'how-it-works'].includes(tab.id)).map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        isActive
+                          ? 'bg-blue-600 text-white'
+                          : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Icon size={16} className="mr-2" />
+                      {tab.title}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Quick Navigation Tabs */}
 
 
         <div className="max-w-6xl mx-auto">
@@ -1600,10 +1630,6 @@ Consider the industry requirements, user volume, and project description to make
                    setShowDiagramReview(false);
                    setActiveTab('generator');
                    setWorkflowStep(3);
-                   // Show success message
-                   setTimeout(() => {
-                     alert('Architecture approved! Moving to Standards Generator...');
-                   }, 100);
                  }}
                  onReject={() => {
                    setShowDiagramReview(false);
@@ -2090,48 +2116,173 @@ Consider the industry requirements, user volume, and project description to make
                       <h2 className="text-2xl font-semibold text-slate-800">
                         Generated Enterprise Development Prompts
                       </h2>
-                      <button
-                        onClick={() => setActiveTab('validator')}
-                        className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                      >
-                        <BarChart3 size={16} className="mr-2" />
-                        Validate Implementation
-                      </button>
+                      <div className="flex items-center space-x-3">
+                        <button
+                          onClick={() => setShowBestPractices(!showBestPractices)}
+                          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          <Lightbulb size={16} className="mr-2" />
+                          {showBestPractices ? 'Hide' : 'Show'} Best Practices
+                        </button>
+                        <button
+                          onClick={() => setActiveTab('validator')}
+                          className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                        >
+                          <BarChart3 size={16} className="mr-2" />
+                          Validate Implementation
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="space-y-6">
-                      {generatedPrompts.map((prompt, index) => (
-                        <div key={index} className="border border-slate-200 rounded-lg overflow-hidden">
-                          <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h3 className="text-lg font-semibold text-slate-800">
-                                  {prompt.phase}
-                                </h3>
-                                <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                                  prompt.priority === 'Critical' 
-                                    ? 'bg-red-100 text-red-800' 
-                                    : 'bg-yellow-100 text-yellow-800'
-                                }`}>
-                                  {prompt.priority} Priority
-                                </span>
-                              </div>
-                              <button
-                                onClick={() => copyToClipboard(prompt.prompt)}
-                                className="flex items-center px-3 py-1 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors"
-                              >
-                                <Copy size={14} className="mr-1" />
-                                Copy
-                              </button>
+                    {/* Filter Controls */}
+                    <div className="mb-6 p-4 bg-slate-50 rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <span className="text-sm font-medium text-slate-700">Filter by Priority:</span>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => setPromptFilter('all')}
+                            className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                              promptFilter === 'all' 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-white text-slate-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            All ({generatedPrompts.length})
+                          </button>
+                          <button
+                            onClick={() => setPromptFilter('critical')}
+                            className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                              promptFilter === 'critical' 
+                                ? 'bg-red-600 text-white' 
+                                : 'bg-white text-slate-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            Critical ({generatedPrompts.filter(p => p.priority === 'Critical').length})
+                          </button>
+                          <button
+                            onClick={() => setPromptFilter('high')}
+                            className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                              promptFilter === 'high' 
+                                ? 'bg-yellow-600 text-white' 
+                                : 'bg-white text-slate-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            High ({generatedPrompts.filter(p => p.priority === 'High').length})
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Best Practices Section */}
+                    {showBestPractices && (
+                      <div className="mb-6 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                        <h3 className="text-xl font-semibold text-blue-800 mb-4 flex items-center">
+                          <Lightbulb className="mr-2" size={24} />
+                          Development Best Practices Guide
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-4">
+                            <div className="bg-white p-4 rounded-lg border">
+                              <h4 className="font-semibold text-slate-800 mb-2">Architecture Patterns</h4>
+                              <ul className="text-sm text-slate-600 space-y-1">
+                                <li>• Use Clean Architecture with clear layer separation</li>
+                                <li>• Implement domain-driven design principles</li>
+                                <li>• Follow single responsibility principle</li>
+                                <li>• Use dependency injection for loose coupling</li>
+                              </ul>
+                            </div>
+                            <div className="bg-white p-4 rounded-lg border">
+                              <h4 className="font-semibold text-slate-800 mb-2">Security Standards</h4>
+                              <ul className="text-sm text-slate-600 space-y-1">
+                                <li>• Implement OAuth 2.0 with PKCE</li>
+                                <li>• Use parameterized queries to prevent SQL injection</li>
+                                <li>• Validate all inputs on client and server</li>
+                                <li>• Implement proper error handling</li>
+                              </ul>
                             </div>
                           </div>
-                          <div className="p-6">
-                            <div className="text-sm text-slate-700 whitespace-pre-wrap bg-slate-50 p-4 rounded border overflow-x-auto">
-                              {prompt.prompt}
+                          <div className="space-y-4">
+                            <div className="bg-white p-4 rounded-lg border">
+                              <h4 className="font-semibold text-slate-800 mb-2">Testing Strategy</h4>
+                              <ul className="text-sm text-slate-600 space-y-1">
+                                <li>• Follow AAA pattern (Arrange, Act, Assert)</li>
+                                <li>• Aim for 90%+ code coverage</li>
+                                <li>• Use test containers for integration tests</li>
+                                <li>• Implement API contract testing</li>
+                              </ul>
+                            </div>
+                            <div className="bg-white p-4 rounded-lg border">
+                              <h4 className="font-semibold text-slate-800 mb-2">Performance & Monitoring</h4>
+                              <ul className="text-sm text-slate-600 space-y-1">
+                                <li>• Use structured logging with correlation IDs</li>
+                                <li>• Implement distributed tracing</li>
+                                <li>• Set up comprehensive monitoring</li>
+                                <li>• Use caching strategies effectively</li>
+                              </ul>
                             </div>
                           </div>
                         </div>
-                      ))}
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      {generatedPrompts
+                        .filter(prompt => {
+                          if (promptFilter === 'all') return true;
+                          if (promptFilter === 'critical') return prompt.priority === 'Critical';
+                          if (promptFilter === 'high') return prompt.priority === 'High';
+                          return true;
+                        })
+                        .map((prompt, index) => (
+                          <div key={index} className="border border-slate-200 rounded-lg overflow-hidden">
+                            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <button
+                                    onClick={() => {
+                                      const newExpanded = new Set(expandedPrompts);
+                                      if (newExpanded.has(index)) {
+                                        newExpanded.delete(index);
+                                      } else {
+                                        newExpanded.add(index);
+                                      }
+                                      setExpandedPrompts(newExpanded);
+                                    }}
+                                    className="text-slate-600 hover:text-slate-800"
+                                  >
+                                    {expandedPrompts.has(index) ? '−' : '+'}
+                                  </button>
+                                  <div>
+                                    <h3 className="text-lg font-semibold text-slate-800">
+                                      {prompt.phase}
+                                    </h3>
+                                    <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
+                                      prompt.priority === 'Critical' 
+                                        ? 'bg-red-100 text-red-800' 
+                                        : 'bg-yellow-100 text-yellow-800'
+                                    }`}>
+                                      {prompt.priority} Priority
+                                    </span>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => copyToClipboard(prompt.prompt)}
+                                  className="flex items-center px-3 py-1 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors"
+                                >
+                                  <Copy size={14} className="mr-1" />
+                                  Copy
+                                </button>
+                              </div>
+                            </div>
+                            {expandedPrompts.has(index) && (
+                              <div className="p-6">
+                                <div className="text-sm text-slate-700 whitespace-pre-wrap bg-slate-50 p-4 rounded border overflow-x-auto max-h-96 overflow-y-auto">
+                                  {prompt.prompt}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                     </div>
 
                     <div className="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
@@ -2244,6 +2395,273 @@ Consider the industry requirements, user volume, and project description to make
                </div>
              </div>
            )}
+
+          {/* How It Works Section */}
+          {activeTab === 'how-it-works' && (
+            <div className="space-y-8">
+              {/* Hero Section */}
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-8 text-white">
+                <div className="text-center">
+                  <Lightbulb className="mx-auto mb-6" size={64} />
+                  <h2 className="text-3xl font-bold mb-4">
+                    Start with Structure, End Development Chaos
+                  </h2>
+                  <p className="text-xl text-blue-100 mb-6 max-w-3xl mx-auto">
+                    Previbe helps developers plan, build, and validate enterprise applications with AI-powered guidance. 
+                    From architecture design to production deployment and beyond.
+                  </p>
+                  <div className="flex justify-center space-x-8 text-center">
+                    <div>
+                      <div className="text-3xl font-bold">10x</div>
+                      <div className="text-blue-100">Faster Planning</div>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-bold">30+</div>
+                      <div className="text-blue-100">Compliance Standards</div>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-bold">100%</div>
+                      <div className="text-blue-100">AI-Powered</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* The Previbe Manifesto */}
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h3 className="text-2xl font-bold text-slate-800 mb-6">The Previbe Manifesto</h3>
+                <div className="space-y-6">
+                  <blockquote className="text-lg text-slate-700 italic border-l-4 border-blue-500 pl-6">
+                    "The future of enterprise development isn't about better prompts. It's about better architecture."
+                  </blockquote>
+                  <p className="text-slate-600">
+                    The manifesto lays out a simple foundation for modern AI-driven enterprise development: 
+                    <strong> architecture before code</strong>. Previbe helps you design comprehensive architecture 
+                    documents that your AI tools and development teams can reliably use—so you get consistent, 
+                    scalable, and compliant code instead of one-off experiments.
+                  </p>
+                  <blockquote className="text-lg text-slate-700 italic border-l-4 border-purple-500 pl-6">
+                    "Architecture is the new documentation. Prompt engineering is duct tape."
+                  </blockquote>
+                  <div className="bg-blue-50 p-6 rounded-lg">
+                    <h4 className="font-semibold text-blue-800 mb-3">Why it matters</h4>
+                    <p className="text-blue-700">
+                      Teams that lead with architecture ship faster, integrate cleaner, and maintain 
+                      architectural coherence as they scale. Enterprise compliance becomes a natural 
+                      byproduct of good design, not an afterthought.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* How It Works Steps */}
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h3 className="text-2xl font-bold text-slate-800 mb-8 text-center">How Previbe Works</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="text-center">
+                    <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Brain className="text-blue-600" size={32} />
+                    </div>
+                    <h4 className="text-xl font-semibold text-slate-800 mb-3">1. Define Your Vision</h4>
+                    <p className="text-slate-600">
+                      Input your project requirements and industry context. Our AI analyzes your concept 
+                      and identifies key architectural components and compliance needs.
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Settings className="text-purple-600" size={32} />
+                    </div>
+                    <h4 className="text-xl font-semibold text-slate-800 mb-3">2. AI-Generated Architecture</h4>
+                    <p className="text-slate-600">
+                      Get comprehensive architecture recommendations, interactive diagrams, and 
+                      enterprise development standards tailored to your specific requirements.
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FileCheck className="text-green-600" size={32} />
+                    </div>
+                    <h4 className="text-xl font-semibold text-slate-800 mb-3">3. Build & Validate</h4>
+                    <p className="text-slate-600">
+                      Use generated standards and prompts to build your application, then validate 
+                      your implementation against enterprise standards with continuous AI guidance.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Features Grid */}
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h3 className="text-2xl font-bold text-slate-800 mb-8 text-center">Powerful Features for Enterprise Development</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-slate-50 p-6 rounded-lg">
+                    <h4 className="font-semibold text-slate-800 mb-2">AI Architecture Consultant</h4>
+                    <p className="text-slate-600">
+                      Get intelligent architecture recommendations based on your industry, scale, and requirements.
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 p-6 rounded-lg">
+                    <h4 className="font-semibold text-slate-800 mb-2">Interactive Diagrams</h4>
+                    <p className="text-slate-600">
+                      Visualize your architecture with dynamic, industry-specific diagrams that adapt to your choices.
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 p-6 rounded-lg">
+                    <h4 className="font-semibold text-slate-800 mb-2">Enterprise Standards Generator</h4>
+                    <p className="text-slate-600">
+                      Generate comprehensive development standards and implementation prompts for your team.
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 p-6 rounded-lg">
+                    <h4 className="font-semibold text-slate-800 mb-2">Compliance Integration</h4>
+                    <p className="text-slate-600">
+                      Built-in support for 30+ compliance frameworks including HIPAA, SOX, GDPR, and more.
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 p-6 rounded-lg">
+                    <h4 className="font-semibold text-slate-800 mb-2">Architecture Validator</h4>
+                    <p className="text-slate-600">
+                      Validate your implementation against enterprise standards and best practices.
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 p-6 rounded-lg">
+                    <h4 className="font-semibold text-slate-800 mb-2">Best Practices Guide</h4>
+                    <p className="text-slate-600">
+                      Access comprehensive development best practices for architecture, security, testing, and more.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* About Section */}
+          {activeTab === 'about' && (
+            <div className="space-y-8">
+              {/* About Hero */}
+              <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl shadow-lg p-8 text-white">
+                <div className="text-center">
+                  <Info className="mx-auto mb-6" size={64} />
+                  <h2 className="text-3xl font-bold mb-4">
+                    About Previbe
+                  </h2>
+                  <p className="text-xl text-purple-100 mb-6 max-w-3xl mx-auto">
+                    The intelligent enterprise development platform that transforms how teams build 
+                    scalable, compliant, and maintainable applications.
+                  </p>
+                </div>
+              </div>
+
+              {/* Mission & Vision */}
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-800 mb-4">Our Mission</h3>
+                    <p className="text-slate-600 mb-4">
+                      To democratize enterprise-grade architecture and development practices, making 
+                      it accessible for teams of all sizes to build applications that scale, comply, 
+                      and succeed in production.
+                    </p>
+                    <p className="text-slate-600">
+                      We believe that every development team deserves access to the same architectural 
+                      rigor and compliance standards that Fortune 500 companies use, without the 
+                      complexity and overhead.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-800 mb-4">Our Vision</h3>
+                    <p className="text-slate-600 mb-4">
+                      A world where enterprise development is not just about writing code, but about 
+                      creating robust, scalable, and compliant systems that drive business value.
+                    </p>
+                    <p className="text-slate-600">
+                      We envision a future where AI-powered architecture guidance becomes the standard, 
+                      enabling teams to focus on innovation while ensuring their applications meet 
+                      the highest standards of quality and compliance.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Key Principles */}
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h3 className="text-2xl font-bold text-slate-800 mb-6">Our Key Principles</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center p-6 bg-blue-50 rounded-lg">
+                    <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Brain className="text-blue-600" size={24} />
+                    </div>
+                    <h4 className="font-semibold text-slate-800 mb-2">Intelligence First</h4>
+                    <p className="text-slate-600 text-sm">
+                      Leverage AI to make informed architectural decisions and generate comprehensive 
+                      development standards.
+                    </p>
+                  </div>
+                  <div className="text-center p-6 bg-purple-50 rounded-lg">
+                    <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Shield className="text-purple-600" size={24} />
+                    </div>
+                    <h4 className="font-semibold text-slate-800 mb-2">Compliance by Design</h4>
+                    <p className="text-slate-600 text-sm">
+                      Build compliance into your architecture from the start, not as an afterthought. 
+                      Support for 30+ industry standards.
+                    </p>
+                  </div>
+                  <div className="text-center p-6 bg-green-50 rounded-lg">
+                    <div className="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Code className="text-green-600" size={24} />
+                    </div>
+                    <h4 className="font-semibold text-slate-800 mb-2">Developer Experience</h4>
+                    <p className="text-slate-600 text-sm">
+                      Focus on creating tools that developers love to use, with intuitive interfaces 
+                      and actionable insights.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Technology Stack */}
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h3 className="text-2xl font-bold text-slate-800 mb-6">Built with Modern Technology</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-slate-50 rounded-lg">
+                    <div className="font-semibold text-slate-800">React</div>
+                    <div className="text-sm text-slate-600">Frontend Framework</div>
+                  </div>
+                  <div className="text-center p-4 bg-slate-50 rounded-lg">
+                    <div className="font-semibold text-slate-800">TypeScript</div>
+                    <div className="text-sm text-slate-600">Type Safety</div>
+                  </div>
+                  <div className="text-center p-4 bg-slate-50 rounded-lg">
+                    <div className="font-semibold text-slate-800">OpenAI GPT-4</div>
+                    <div className="text-sm text-slate-600">AI Intelligence</div>
+                  </div>
+                  <div className="text-center p-4 bg-slate-50 rounded-lg">
+                    <div className="font-semibold text-slate-800">Tailwind CSS</div>
+                    <div className="text-sm text-slate-600">Styling</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact & Support */}
+              <div className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl shadow-lg p-8">
+                <h3 className="text-2xl font-bold text-slate-800 mb-6 text-center">Get Started Today</h3>
+                <div className="text-center">
+                  <p className="text-slate-600 mb-6 max-w-2xl mx-auto">
+                    Ready to transform your development process? Start building enterprise-grade 
+                    applications with AI-powered architecture guidance.
+                  </p>
+                  <button
+                    onClick={() => setActiveTab('consultant')}
+                    className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                  >
+                    Start Your First Project
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
