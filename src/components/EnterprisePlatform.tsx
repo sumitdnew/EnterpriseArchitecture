@@ -1274,9 +1274,31 @@ OUTPUT: Return ONLY a valid JSON object with this exact structure:
                  Powered by OpenAI GPT-4
                </div>
              </div>
-             <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
-               Based on your project description, here are our AI-powered recommendations:
-             </p>
+                           <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
+                Based on your project description, here are our AI-powered recommendations:
+              </p>
+              
+              {/* User Input Summary */}
+              <div className="mb-8 bg-slate-50 border border-slate-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-slate-800 mb-4">Your Project Requirements</h3>
+                <div className="text-slate-700 space-y-2">
+                  <p><strong>Project Type:</strong> {problemDescription.projectDescription || 'Not specified'}</p>
+                  <p><strong>Industry:</strong> {problemDescription.industry || 'Not specified'}</p>
+                  <p><strong>Expected Users:</strong> {problemDescription.userVolume ? `${parseInt(problemDescription.userVolume).toLocaleString()}+ users` : 'Not specified'}</p>
+                  <p><strong>Key Features:</strong> {problemDescription.keyFeatures || 'Not specified'}</p>
+                  <p><strong>Data Complexity:</strong> {problemDescription.dataComplexity || 'Not specified'}</p>
+                  <p><strong>Security Requirements:</strong> {problemDescription.securityRequirements || 'Not specified'}</p>
+                </div>
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-sm text-blue-800">
+                    <strong>Summary:</strong> You're building a {problemDescription.projectDescription || 'project'} for the {problemDescription.industry || 'general'} industry, 
+                    expecting {problemDescription.userVolume ? `${parseInt(problemDescription.userVolume).toLocaleString()}+ users` : 'an unspecified number of users'}, 
+                    with {problemDescription.keyFeatures || 'standard'} features, 
+                    {problemDescription.dataComplexity || 'moderate'} data complexity, 
+                    and {problemDescription.securityRequirements || 'standard'} security requirements.
+                  </p>
+                </div>
+              </div>
              
              <div className="max-w-4xl mx-auto space-y-6">
                {/* Core Architecture */}
@@ -2171,11 +2193,17 @@ OUTPUT: Return ONLY a valid JSON object with this exact structure:
                                          {/* Compliance Step */}
                      {activeStep === 1 && (
                        <div className="space-y-6">
-                         {/* Debug info */}
-                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                           <h4 className="font-semibold text-yellow-800 mb-2">Debug Info:</h4>
-                           <p className="text-sm text-yellow-700">
-                             Current compliance: {projectConfig.compliance.length > 0 ? projectConfig.compliance.join(', ') : 'None'}
+                         {/* User Input Summary */}
+                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                           <h4 className="font-semibold text-blue-800 mb-2">Original AI Recommendations:</h4>
+                           <p className="text-sm text-blue-700 mb-2">
+                             <strong>Project:</strong> {problemDescription.projectDescription || 'Not specified'} for {problemDescription.industry || 'general'} industry
+                           </p>
+                           <p className="text-sm text-blue-700 mb-2">
+                             <strong>AI Recommended Compliance:</strong> {architectureRecommendations?.compliance?.length > 0 ? architectureRecommendations.compliance.join(', ') : 'None'}
+                           </p>
+                           <p className="text-sm text-blue-700">
+                             <strong>Current Compliance:</strong> {projectConfig.compliance.length > 0 ? projectConfig.compliance.join(', ') : 'None'}
                            </p>
                          </div>
                          
