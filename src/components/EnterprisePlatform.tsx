@@ -25,7 +25,8 @@ import {
   Map,
   Eye,
   FileCheck,
-  Info
+  Info,
+  Palette
 } from 'lucide-react';
 import DiagramReview from './DiagramReview';
 import ArchitectureValidator from './ArchitectureValidator';
@@ -75,7 +76,7 @@ const EnterprisePlatform = () => {
   const [expandedPrompts, setExpandedPrompts] = useState<Set<number>>(new Set());
   const [showBestPractices, setShowBestPractices] = useState(false);
   
-  // Architecture Consultant states
+  // AI Architect states
   const [architectureRecommendations, setArchitectureRecommendations] = useState<any>(null);
   const [consultantStep, setConsultantStep] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -91,7 +92,10 @@ const EnterprisePlatform = () => {
     teamSize: '',
     timeline: '',
     budget: '',
-    specificRequirements: ''
+    specificRequirements: '',
+    keyFeatures: '',
+    dataComplexity: '',
+    securityRequirements: ''
   });
 
   // Simple update functions without useCallback
@@ -276,7 +280,7 @@ const EnterprisePlatform = () => {
   const workflowSteps = [
     { 
       id: 1, 
-      title: 'Architecture Consultant', 
+      title: 'AI Architect', 
       subtitle: 'Define your project requirements',
       icon: Brain,
       description: 'Describe your project and get AI-powered architecture recommendations',
@@ -331,8 +335,9 @@ const EnterprisePlatform = () => {
 
   const mainTabs = [
     { id: 'dashboard', title: 'Dashboard', icon: Home },
-    { id: 'consultant', title: 'Architecture Consultant', icon: Brain },
+          { id: 'consultant', title: 'AI Architect', icon: Brain },
     { id: 'generator', title: 'Standards Generator', icon: Settings },
+    { id: 'design', title: 'Visual Design', icon: Palette },
     { id: 'validator', title: 'Architecture Validator', icon: BarChart3 },
     { id: 'how-it-works', title: 'How It Works', icon: Lightbulb },
     { id: 'about', title: 'About', icon: Info }
@@ -845,7 +850,7 @@ COMPLIANCE TESTING:
       updateShowRecommendations: (show: boolean) => void;
     }) => {
       // Use refs for uncontrolled inputs
-      const projectDescriptionRef = React.useRef<HTMLTextAreaElement>(null);
+      const projectDescriptionRef = React.useRef<HTMLSelectElement>(null);
       const industryRef = React.useRef<HTMLSelectElement>(null);
       const userVolumeRef = React.useRef<HTMLSelectElement>(null);
 
@@ -870,18 +875,108 @@ COMPLIANCE TESTING:
 
      return (
        <div className="max-w-2xl mx-auto space-y-6">
-         <div>
-           <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
-             What problem are you trying to solve?
-           </label>
-                                                                                               <textarea
-                ref={projectDescriptionRef}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                rows={4}
-                placeholder="e.g., Building a social media platform for healthcare professionals to share knowledge and connect..."
-                defaultValue={problemDescription.projectDescription}
-                onBlur={handleProjectDescriptionChange}
-              />
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           <div>
+             <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
+               Project Type
+             </label>
+             <select 
+               ref={projectDescriptionRef}
+               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+               defaultValue={problemDescription.projectDescription}
+               onChange={handleProjectDescriptionChange}
+             >
+               <option value="">Select Project Type</option>
+               <option value="web-application">Web Application</option>
+               <option value="mobile-app">Mobile Application</option>
+               <option value="api-platform">API Platform</option>
+               <option value="data-analytics">Data Analytics Platform</option>
+               <option value="ecommerce-platform">E-commerce Platform</option>
+               <option value="crm-system">CRM System</option>
+               <option value="content-management">Content Management System</option>
+               <option value="collaboration-tool">Collaboration Tool</option>
+               <option value="iot-platform">IoT Platform</option>
+               <option value="ai-ml-platform">AI/ML Platform</option>
+               <option value="blockchain-platform">Blockchain Platform</option>
+               <option value="microservices-platform">Microservices Platform</option>
+               <option value="real-time-system">Real-time System</option>
+               <option value="enterprise-integration">Enterprise Integration</option>
+               <option value="other">Other</option>
+             </select>
+           </div>
+
+           <div>
+             <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
+               Key Features
+             </label>
+             <select 
+               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+               value={problemDescription.keyFeatures}
+               onChange={(e) => {
+                 const features = e.target.value;
+                 updateProblemDescription({ keyFeatures: features });
+               }}
+             >
+               <option value="">Select Key Features</option>
+               <option value="user-authentication">User Authentication & Authorization</option>
+               <option value="real-time-messaging">Real-time Messaging</option>
+               <option value="file-upload">File Upload & Storage</option>
+               <option value="payment-processing">Payment Processing</option>
+               <option value="reporting-analytics">Reporting & Analytics</option>
+               <option value="notifications">Push Notifications</option>
+               <option value="search-functionality">Search Functionality</option>
+               <option value="data-visualization">Data Visualization</option>
+               <option value="workflow-automation">Workflow Automation</option>
+               <option value="api-integration">Third-party API Integration</option>
+               <option value="multi-tenancy">Multi-tenancy</option>
+               <option value="offline-capability">Offline Capability</option>
+               <option value="video-streaming">Video Streaming</option>
+               <option value="ai-chatbot">AI Chatbot</option>
+               <option value="other">Other</option>
+             </select>
+           </div>
+         </div>
+
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           <div>
+             <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
+               Data Complexity
+             </label>
+             <select 
+               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+               value={problemDescription.dataComplexity}
+               onChange={(e) => {
+                 const complexity = e.target.value;
+                 updateProblemDescription({ dataComplexity: complexity });
+               }}
+             >
+               <option value="">Select Data Complexity</option>
+               <option value="simple">Simple (Basic CRUD operations)</option>
+               <option value="moderate">Moderate (Complex relationships)</option>
+               <option value="complex">Complex (Big data, real-time processing)</option>
+               <option value="very-complex">Very Complex (AI/ML, predictive analytics)</option>
+             </select>
+           </div>
+
+           <div>
+             <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
+               Security Requirements
+             </label>
+             <select 
+               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+               value={problemDescription.securityRequirements}
+               onChange={(e) => {
+                 const security = e.target.value;
+                 updateProblemDescription({ securityRequirements: security });
+               }}
+             >
+               <option value="">Select Security Level</option>
+               <option value="basic">Basic (Standard web security)</option>
+               <option value="enhanced">Enhanced (Multi-factor auth, encryption)</option>
+               <option value="enterprise">Enterprise (Compliance, audit trails)</option>
+               <option value="government">Government (High security, certifications)</option>
+             </select>
+           </div>
          </div>
 
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -962,66 +1057,88 @@ COMPLIANCE TESTING:
                const generateAIRecommendations = async () => {
                 const userVolume = parseInt(currentUserVolume);
                 const industry = currentIndustry;
-                const description = currentProjectDescription;
+                const projectType = currentProjectDescription;
+                const keyFeatures = problemDescription.keyFeatures;
+                const dataComplexity = problemDescription.dataComplexity;
+                const securityRequirements = problemDescription.securityRequirements;
                 
                 try {
-                  // Prepare the prompt for OpenAI
-                  const prompt = `You are an expert enterprise architect. Based on the following project requirements, provide detailed architecture recommendations in JSON format.
+                  // Prepare the input JSON for OpenAI
+                  const inputData = {
+                    projectType: projectType,
+                    industry: industry,
+                    expectedUsers: parseInt(String(userVolume || '0')),
+                    keyFeatures: keyFeatures,
+                    dataComplexity: dataComplexity,
+                    securityRequirements: securityRequirements
+                  };
 
-Project Description: ${description}
-Industry: ${industry} (This is CRITICAL for compliance requirements)
-Expected Users: ${userVolume}
+                  const prompt = `You are an expert enterprise architect. Analyze the following project requirements and generate architecture recommendations.
 
-IMPORTANT: For ${industry} industry, you MUST include the following compliance frameworks:
-${industry === 'healthcare' ? '- HIPAA (Health Insurance Portability and Accountability Act)' : ''}
-${industry === 'healthcare' ? '- HITECH (Health Information Technology for Economic and Clinical Health)' : ''}
-${industry === 'healthcare' ? '- FDA (Food and Drug Administration) requirements' : ''}
-${industry === 'financial' ? '- SOX (Sarbanes-Oxley Act)' : ''}
-${industry === 'financial' ? '- PCI DSS (Payment Card Industry Data Security Standard)' : ''}
-${industry === 'financial' ? '- Basel-III (Banking regulations)' : ''}
-${industry === 'financial' ? '- GLBA (Gramm-Leach-Bliley Act)' : ''}
-${industry === 'government' ? '- FedRAMP (Federal Risk and Authorization Management Program)' : ''}
-${industry === 'government' ? '- FISMA (Federal Information Security Management Act)' : ''}
-${industry === 'government' ? '- NIST (National Institute of Standards and Technology)' : ''}
-${industry === 'education' ? '- FERPA (Family Educational Rights and Privacy Act)' : ''}
-${industry === 'education' ? '- COPPA (Children\'s Online Privacy Protection Act)' : ''}
+INPUT (JSON):
+${JSON.stringify(inputData, null, 2)}
 
-Please provide recommendations in the following JSON structure:
+RULES:
+1. For web applications: use monolith if <10K users, microservices if >100K users
+2. For mobile apps: use backend-for-frontend pattern
+3. For API platforms: use API Gateway pattern
+4. For data analytics: use data lake architecture
+5. For e-commerce: use event-driven architecture
+6. For IoT: use edge computing with MQTT
+7. For AI/ML: use ML pipeline architecture
+
+Database selection:
+- Simple data: PostgreSQL or MySQL
+- Moderate data: PostgreSQL with Redis
+- Complex data: MongoDB or distributed PostgreSQL
+- Very complex data: multi-database architecture
+
+Scaling strategy:
+- <10K users: manual scaling
+- 10K-100K users: auto-scaling
+- 100K-1M users: microservices scaling
+- >1M users: global scaling
+
+Compliance requirements:
+- Healthcare: ["hipaa", "hitech", "fda"]
+- Financial: ["sox", "pci", "basel-iii", "glba"]
+- Government: ["fedramp", "fisma", "nist"]
+- Education: ["ferpa", "coppa"]
+
+OUTPUT: Return ONLY a valid JSON object with this exact structure:
 {
-  "architecture": "microservices|monolith|event-driven",
-  "techStack": "spring-boot|nodejs|python|golang",
-  "database": "postgresql|mongodb|timescaledb|neo4j|distributed-postgresql",
-  "messageQueue": "kafka|redis-streams|rabbitmq|mqtt",
-  "caching": "redis|redis-cluster|cdn-redis|redis-timeseries",
-  "deployment": "kubernetes|docker-compose|serverless|edge-computing",
+  "architecture": "monolith|microservices|event-driven|api-gateway|data-lake|edge-computing|ml-pipeline",
+  "techStack": "spring-boot|nodejs|python|golang|dotnet|java",
+  "database": "postgresql|mysql|mongodb|distributed-postgresql|multi-database",
+  "messageQueue": "kafka",
+  "caching": "redis",
+  "deployment": "kubernetes",
   "compliance": ["array", "of", "compliance", "frameworks"],
-  "securityLevel": "standard|enhanced|enterprise",
-  "scalingStrategy": "manual-scaling|auto-scaling|cdn-scaling|edge-scaling",
-  "dataRetention": "3-years|7-years",
+  "securityLevel": "standard|enhanced|enterprise|government",
+  "scalingStrategy": "manual-scaling|auto-scaling|microservices-scaling|global-scaling",
+  "dataRetention": "7-years",
   "backupStrategy": "daily-incremental-weekly-full",
-  "disasterRecovery": "single-region|multi-region",
+  "disasterRecovery": "multi-region",
   "performanceTargets": {
-    "responseTime": "50ms|200ms|500ms|1000ms|2000ms",
-    "throughput": "100-rps|500-rps|1000-rps|10000-rps|50000-rps",
+    "responseTime": "200ms",
+    "throughput": "1000-rps",
     "availability": "99.9%"
   },
   "testingStrategy": {
-    "unitCoverage": "90%|95%",
-    "integrationTests": "comprehensive|ml-pipeline|payment-gateway",
-    "e2eTests": "critical-paths|payment-flow",
-    "performanceTests": "basic|load-stress|load-stress-latency"
+    "unitCoverage": "95%",
+    "integrationTests": "comprehensive",
+    "e2eTests": "critical-paths",
+    "performanceTests": "load-stress"
   },
-  "additionalRecommendations": ["array", "of", "specific", "recommendations"],
+  "additionalRecommendations": ["Follow enterprise best practices"],
   "aiInsights": {
-    "complexity": "low|medium|high",
-    "riskLevel": "low|medium|high",
-    "estimatedTimeline": "3-6 months|6-12 months|12+ months",
-    "teamSize": "3-8 developers|8-15 developers|15+ developers",
-    "costEstimate": "$100K-$500K|$500K-$2M|$2M+"
+    "complexity": "medium",
+    "riskLevel": "medium",
+    "estimatedTimeline": "6-12 months",
+    "teamSize": "8-15 developers",
+    "costEstimate": "$500K-$2M"
   }
-}
-
-Consider the industry requirements, user volume, and project description to make intelligent recommendations. Focus on enterprise-grade solutions with proper security, scalability, and compliance considerations.`;
+}`;
 
                   // Call OpenAI API using the service
                   const data = await callOpenAI({
@@ -1039,110 +1156,52 @@ Consider the industry requirements, user volume, and project description to make
                   // Parse the JSON response from OpenAI
                   let recommendations;
                   try {
-                    // Extract JSON from the response (in case there's extra text)
-                    const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-                    if (jsonMatch) {
-                      recommendations = JSON.parse(jsonMatch[0]);
-                    } else {
-                      recommendations = JSON.parse(aiResponse);
+                    if (!aiResponse || aiResponse.trim() === '') {
+                      throw new Error('Empty AI response received');
                     }
+                    
+                    // Try to parse directly first
+                    try {
+                      recommendations = JSON.parse(aiResponse.trim());
+                    } catch (directParseError) {
+                      // Clean the response and extract JSON
+                      let cleanedResponse = aiResponse.trim();
+                      
+                      // Remove any markdown code blocks
+                      cleanedResponse = cleanedResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+                      
+                      // Find JSON object in the response
+                      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+                      if (jsonMatch) {
+                        recommendations = JSON.parse(jsonMatch[0]);
+                      } else {
+                        throw new Error('No valid JSON found in AI response');
+                      }
+                    }
+                    
+                    // Validate required fields
+                    const requiredFields = ['architecture', 'techStack', 'database', 'compliance'];
+                    for (const field of requiredFields) {
+                      if (!recommendations[field]) {
+                        throw new Error(`Missing required field: ${field}`);
+                      }
+                    }
+                    
                   } catch (parseError) {
                     console.error('Failed to parse AI response:', parseError);
-                    // Fallback to default recommendations
-                    recommendations = {
-                      architecture: 'microservices',
-                      techStack: 'spring-boot',
-                      database: 'postgresql',
-                      messageQueue: 'kafka',
-                      caching: 'redis',
-                      deployment: 'kubernetes',
-                      compliance: ['gdpr'],
-                      securityLevel: 'enterprise',
-                      scalingStrategy: 'auto-scaling',
-                      dataRetention: '3-years',
-                      backupStrategy: 'daily-incremental-weekly-full',
-                      disasterRecovery: 'multi-region',
-                      performanceTargets: {
-                        responseTime: '200ms',
-                        throughput: '10000-rps',
-                        availability: '99.9%'
-                      },
-                      testingStrategy: {
-                        unitCoverage: '90%',
-                        integrationTests: 'comprehensive',
-                        e2eTests: 'critical-paths',
-                        performanceTests: 'load-stress'
-                      },
-                      additionalRecommendations: [
-                        'Implement comprehensive monitoring and logging',
-                        'Set up CI/CD pipeline with automated testing',
-                        'Configure security scanning and vulnerability management'
-                      ],
-                      aiInsights: {
-                        complexity: 'high',
-                        riskLevel: 'medium',
-                        estimatedTimeline: '6-12 months',
-                        teamSize: '8-15 developers',
-                        costEstimate: '$500K-$2M'
-                      }
-                    };
+                    throw new Error('Failed to parse AI recommendations. Please try again.');
                   }
 
                   return recommendations;
                 } catch (error) {
                   console.error('OpenAI API error:', error);
-                  // Return fallback recommendations
-                  return {
-                    architecture: 'microservices',
-                    techStack: 'spring-boot',
-                    database: 'postgresql',
-                    messageQueue: 'kafka',
-                    caching: 'redis',
-                    deployment: 'kubernetes',
-                    compliance: ['gdpr'],
-                    securityLevel: 'enterprise',
-                    scalingStrategy: 'auto-scaling',
-                    dataRetention: '3-years',
-                    backupStrategy: 'daily-incremental-weekly-full',
-                    disasterRecovery: 'multi-region',
-                    performanceTargets: {
-                      responseTime: '200ms',
-                      throughput: '10000-rps',
-                      availability: '99.9%'
-                    },
-                    testingStrategy: {
-                      unitCoverage: '90%',
-                      integrationTests: 'comprehensive',
-                      e2eTests: 'critical-paths',
-                      performanceTests: 'load-stress'
-                    },
-                    additionalRecommendations: [
-                      'Implement comprehensive monitoring and logging',
-                      'Set up CI/CD pipeline with automated testing',
-                      'Configure security scanning and vulnerability management'
-                    ],
-                    aiInsights: {
-                      complexity: 'high',
-                      riskLevel: 'medium',
-                      estimatedTimeline: '6-12 months',
-                      teamSize: '8-15 developers',
-                      costEstimate: '$500K-$2M'
-                    }
-                  };
+                  throw new Error('Failed to get AI recommendations. Please try again.');
                 }
              };
              
                const recommendations = await generateAIRecommendations();
-               console.log('✅ OpenAI Response Received:', recommendations);
-               console.log('🎯 AI-Generated Architecture:', recommendations.architecture);
-               console.log('⚙️ AI-Generated Tech Stack:', recommendations.techStack);
-               console.log('🔒 AI-Generated Compliance:', recommendations.compliance);
                
-               // Validate and enhance compliance recommendations based on industry
-               const enhancedRecommendations = validateAndEnhanceCompliance(recommendations, currentIndustry);
-               console.log('🔒 Enhanced Compliance:', enhancedRecommendations.compliance);
-               
-               updateArchitectureRecommendations(enhancedRecommendations);
+               updateArchitectureRecommendations(recommendations);
                updateShowRecommendations(true);
                setAiGenerationTime(new Date().toLocaleString());
              } catch (error) {
@@ -1152,7 +1211,7 @@ Consider the industry requirements, user volume, and project description to make
                setIsAnalyzing(false);
              }
            }}
-                                               disabled={!problemDescription.projectDescription || !problemDescription.industry || isAnalyzing}
+                                               disabled={!problemDescription.projectDescription || !problemDescription.industry || !problemDescription.keyFeatures || !problemDescription.dataComplexity || !problemDescription.securityRequirements || isAnalyzing}
            className="w-full px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors font-semibold"
          >
            {isAnalyzing ? (
@@ -1168,7 +1227,7 @@ Consider the industry requirements, user volume, and project description to make
      );
    };
 
-           // Simple Architecture Consultant Component
+           // Simple AI Architect Component
     const ArchitectureConsultantView = ({ 
       problemDescription, 
       setProblemDescription, 
@@ -1443,7 +1502,7 @@ Consider the industry requirements, user volume, and project description to make
          <div className="text-center">
            <Brain className="mx-auto text-purple-600 mb-6" size={64} />
            <h2 className="text-3xl font-bold text-slate-800 mb-4">
-             AI Architecture Consultant
+                            AI Architect
            </h2>
            <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
              Describe your project and get intelligent architecture recommendations 
@@ -1568,12 +1627,13 @@ Consider the industry requirements, user volume, and project description to make
                 <span className="text-slate-700 font-medium">Enterprise Platform</span>
                 <ChevronRight className="text-slate-400" size={16} />
                 <span className="text-slate-700 font-medium">
-                  {activeTab === 'consultant' && 'Architecture Consultant'}
-                  {activeTab === 'dashboard' && 'Dashboard'}
-                  {activeTab === 'generator' && 'Standards Generator'}
-                  {activeTab === 'validator' && 'Architecture Validator'}
-                  {activeTab === 'how-it-works' && 'How It Works'}
-                  {activeTab === 'about' && 'About'}
+                                     {activeTab === 'consultant' && 'AI Architect'}
+                   {activeTab === 'dashboard' && 'Dashboard'}
+                   {activeTab === 'generator' && 'Standards Generator'}
+                   {activeTab === 'design' && 'Visual Design'}
+                   {activeTab === 'validator' && 'Architecture Validator'}
+                   {activeTab === 'how-it-works' && 'How It Works'}
+                   {activeTab === 'about' && 'About'}
                 </span>
                 {showDiagramReview && (
                   <>
@@ -1644,7 +1704,7 @@ Consider the industry requirements, user volume, and project description to make
              </div>
            )}
           
-          {/* Architecture Consultant */}
+          {/* AI Architect */}
           {activeTab === 'consultant' && !showDiagramReview && (
             <div>
               <ArchitectureConsultantView 
@@ -1682,6 +1742,154 @@ Consider the industry requirements, user volume, and project description to make
             </div>
           )}
           {activeTab === 'dashboard' && !showDiagramReview && <DashboardView key="dashboard-view" />}
+          
+          {activeTab === 'design' && !showDiagramReview && (
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <div className="flex items-center mb-6">
+                <Palette className="text-purple-600 mr-3" size={24} />
+                <h2 className="text-2xl font-semibold text-slate-800">Visual Design Standards</h2>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Design System */}
+                <div className="space-y-6">
+                  <h3 className="text-xl font-semibold text-slate-800 border-b border-slate-200 pb-2">Design System</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-slate-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-slate-800 mb-2">Color Palette</h4>
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="w-8 h-8 bg-blue-600 rounded"></div>
+                        <div className="w-8 h-8 bg-purple-600 rounded"></div>
+                        <div className="w-8 h-8 bg-green-600 rounded"></div>
+                        <div className="w-8 h-8 bg-red-600 rounded"></div>
+                      </div>
+                      <p className="text-sm text-slate-600 mt-2">Primary, secondary, success, and error colors</p>
+                    </div>
+                    
+                    <div className="bg-slate-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-slate-800 mb-2">Typography</h4>
+                      <div className="space-y-2">
+                        <h1 className="text-2xl font-bold">Heading 1</h1>
+                        <h2 className="text-xl font-semibold">Heading 2</h2>
+                        <h3 className="text-lg font-medium">Heading 3</h3>
+                        <p className="text-base">Body text with proper line height</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-slate-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-slate-800 mb-2">Spacing Scale</h4>
+                      <div className="space-y-2">
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 bg-blue-600 rounded mr-2"></div>
+                          <span className="text-sm">4px (xs)</span>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-4 h-4 bg-blue-600 rounded mr-2"></div>
+                          <span className="text-sm">8px (sm)</span>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-6 h-6 bg-blue-600 rounded mr-2"></div>
+                          <span className="text-sm">16px (md)</span>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 bg-blue-600 rounded mr-2"></div>
+                          <span className="text-sm">24px (lg)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* UI Components */}
+                <div className="space-y-6">
+                  <h3 className="text-xl font-semibold text-slate-800 border-b border-slate-200 pb-2">UI Components</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-slate-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-slate-800 mb-2">Buttons</h4>
+                      <div className="space-y-2">
+                        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Primary Button</button>
+                        <button className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300">Secondary Button</button>
+                        <button className="px-4 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50">Danger Button</button>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-slate-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-slate-800 mb-2">Form Elements</h4>
+                      <div className="space-y-2">
+                        <input type="text" placeholder="Text input" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                        <select className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                          <option>Select option</option>
+                        </select>
+                        <div className="flex items-center">
+                          <input type="checkbox" className="mr-2" />
+                          <label className="text-sm">Checkbox option</label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-slate-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-slate-800 mb-2">Cards & Containers</h4>
+                      <div className="space-y-2">
+                        <div className="p-4 border border-slate-200 rounded-lg">
+                          <h5 className="font-medium mb-2">Card Title</h5>
+                          <p className="text-sm text-slate-600">Card content with proper padding and borders</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Accessibility Guidelines */}
+              <div className="mt-8">
+                <h3 className="text-xl font-semibold text-slate-800 border-b border-slate-200 pb-2 mb-4">Accessibility Guidelines</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-slate-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-slate-800 mb-2">WCAG 2.1 Compliance</h4>
+                    <ul className="text-sm text-slate-600 space-y-1">
+                      <li>• Minimum contrast ratio of 4.5:1 for normal text</li>
+                      <li>• Keyboard navigation support for all interactive elements</li>
+                      <li>• Screen reader compatibility with proper ARIA labels</li>
+                      <li>• Focus indicators for all interactive elements</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-slate-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-slate-800 mb-2">Responsive Design</h4>
+                    <ul className="text-sm text-slate-600 space-y-1">
+                      <li>• Mobile-first approach with breakpoints at 768px, 1024px, 1280px</li>
+                      <li>• Touch-friendly targets (minimum 44px)</li>
+                      <li>• Flexible layouts that adapt to screen sizes</li>
+                      <li>• Optimized typography scaling</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Brand Guidelines */}
+              <div className="mt-8">
+                <h3 className="text-xl font-semibold text-slate-800 border-b border-slate-200 pb-2 mb-4">Brand Guidelines</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-slate-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-slate-800 mb-2">Logo Usage</h4>
+                    <p className="text-sm text-slate-600">Maintain clear space around logo equal to the height of the logo. Never distort or modify the logo proportions.</p>
+                  </div>
+                  
+                  <div className="bg-slate-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-slate-800 mb-2">Voice & Tone</h4>
+                    <p className="text-sm text-slate-600">Professional yet approachable. Use clear, concise language. Avoid jargon unless necessary for technical accuracy.</p>
+                  </div>
+                  
+                  <div className="bg-slate-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-slate-800 mb-2">Visual Hierarchy</h4>
+                    <p className="text-sm text-slate-600">Use size, weight, and color to guide users through content. Important actions should be prominent and easily discoverable.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           
                      {activeTab === 'generator' && !showDiagramReview && (
              <div>
@@ -2496,7 +2704,7 @@ Consider the industry requirements, user volume, and project description to make
                 <h3 className="text-2xl font-bold text-slate-800 mb-8 text-center">Powerful Features for Enterprise Development</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-slate-50 p-6 rounded-lg">
-                    <h4 className="font-semibold text-slate-800 mb-2">AI Architecture Consultant</h4>
+                    <h4 className="font-semibold text-slate-800 mb-2">AI Architect</h4>
                     <p className="text-slate-600">
                       Get intelligent architecture recommendations based on your industry, scale, and requirements.
                     </p>
