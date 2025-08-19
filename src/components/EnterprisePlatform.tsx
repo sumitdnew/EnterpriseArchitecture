@@ -863,15 +863,15 @@ COMPLIANCE TESTING:
      return (
        <div className="max-w-2xl mx-auto space-y-6">
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
+           <div>
              <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
                Project Type
              </label>
-               <select 
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                value={problemDescription.projectDescription}
-                onChange={(e) => updateProblemDescription({ projectDescription: e.target.value })}
-              >
+             <select 
+               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+               value={problemDescription.projectDescription}
+               onChange={(e) => updateProblemDescription({ projectDescription: e.target.value })}
+             >
                <option value="">Select Project Type</option>
                <option value="web-application">Web Application</option>
                <option value="mobile-app">Mobile Application</option>
@@ -893,32 +893,19 @@ COMPLIANCE TESTING:
 
            <div>
              <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
-               Key Features
+               Project Scale
              </label>
              <select 
                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-               value={problemDescription.keyFeatures}
-               onChange={(e) => {
-                 const features = e.target.value;
-                 updateProblemDescription({ keyFeatures: features });
-               }}
+               value={problemDescription.projectScale}
+               onChange={(e) => updateProblemDescription({ projectScale: e.target.value })}
              >
-               <option value="">Select Key Features</option>
-               <option value="user-authentication">User Authentication & Authorization</option>
-               <option value="real-time-messaging">Real-time Messaging</option>
-               <option value="file-upload">File Upload & Storage</option>
-               <option value="payment-processing">Payment Processing</option>
-               <option value="reporting-analytics">Reporting & Analytics</option>
-               <option value="notifications">Push Notifications</option>
-               <option value="search-functionality">Search Functionality</option>
-               <option value="data-visualization">Data Visualization</option>
-               <option value="workflow-automation">Workflow Automation</option>
-               <option value="api-integration">Third-party API Integration</option>
-               <option value="multi-tenancy">Multi-tenancy</option>
-               <option value="offline-capability">Offline Capability</option>
-               <option value="video-streaming">Video Streaming</option>
-               <option value="ai-chatbot">AI Chatbot</option>
-               <option value="other">Other</option>
+               <option value="">Select Project Scale</option>
+               <option value="startup">Startup (MVP/Prototype)</option>
+               <option value="small-business">Small Business</option>
+               <option value="medium-enterprise">Medium Enterprise</option>
+               <option value="large-enterprise">Large Enterprise</option>
+               <option value="government">Government/Public Sector</option>
              </select>
            </div>
          </div>
@@ -1019,7 +1006,85 @@ COMPLIANCE TESTING:
            </div>
          </div>
 
-                  <button
+         <div>
+           <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
+             Key Features
+           </label>
+           <div className="space-y-2">
+             {/* Selected Tags */}
+             {problemDescription.keyFeatures && problemDescription.keyFeatures.split(',').filter((f: string) => f.trim() !== '').length > 0 && (
+               <div className="flex flex-wrap gap-2 mb-3">
+                 {problemDescription.keyFeatures.split(',').filter((f: string) => f.trim() !== '').map((feature: string) => (
+                   <span
+                     key={feature}
+                     className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-800 border border-purple-200"
+                   >
+                     {feature.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                     <button
+                       type="button"
+                       onClick={() => {
+                         const currentFeatures = problemDescription.keyFeatures ? problemDescription.keyFeatures.split(',') : [];
+                         const newFeatures = currentFeatures.filter((f: string) => f !== feature);
+                         updateProblemDescription({ keyFeatures: newFeatures.join(',') });
+                       }}
+                       className="ml-2 text-purple-600 hover:text-purple-800"
+                     >
+                       ×
+                     </button>
+                   </span>
+                 ))}
+               </div>
+             )}
+             
+             {/* Feature Selection */}
+             <div className="flex flex-wrap gap-2">
+               {[
+                 { value: 'user-authentication', label: 'User Auth' },
+                 { value: 'real-time-messaging', label: 'Real-time Chat' },
+                 { value: 'file-upload', label: 'File Upload' },
+                 { value: 'payment-processing', label: 'Payments' },
+                 { value: 'reporting-analytics', label: 'Analytics' },
+                 { value: 'notifications', label: 'Notifications' },
+                 { value: 'search-functionality', label: 'Search' },
+                 { value: 'data-visualization', label: 'Data Viz' },
+                 { value: 'workflow-automation', label: 'Workflow' },
+                 { value: 'api-integration', label: 'API Integration' },
+                 { value: 'multi-tenancy', label: 'Multi-tenant' },
+                 { value: 'offline-capability', label: 'Offline' },
+                 { value: 'video-streaming', label: 'Video' },
+                 { value: 'ai-chatbot', label: 'AI Chatbot' }
+               ].map((feature) => {
+                 const isSelected = problemDescription.keyFeatures ? problemDescription.keyFeatures.split(',').includes(feature.value) : false;
+                 return (
+                   <button
+                     key={feature.value}
+                     type="button"
+                     onClick={() => {
+                       const currentFeatures = problemDescription.keyFeatures ? problemDescription.keyFeatures.split(',') : [];
+                       let newFeatures;
+                       if (isSelected) {
+                         newFeatures = currentFeatures.filter((f: string) => f !== feature.value);
+                       } else {
+                         newFeatures = [...currentFeatures, feature.value];
+                       }
+                       updateProblemDescription({ keyFeatures: newFeatures.join(',') });
+                     }}
+                     className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                       isSelected
+                         ? 'bg-purple-600 text-white border-purple-600'
+                         : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-purple-300'
+                     }`}
+                   >
+                     {feature.label}
+                   </button>
+                 );
+               })}
+             </div>
+           </div>
+           <p className="text-xs text-slate-500 mt-1">Click tags to add/remove features from your project</p>
+         </div>
+
+         <button
            onClick={async () => {
              // Get current values from state
              const currentProjectDescription = problemDescription.projectDescription;
@@ -1042,7 +1107,7 @@ COMPLIANCE TESTING:
                 const userVolume = parseInt(currentUserVolume);
                 const industry = currentIndustry;
                 const projectType = currentProjectDescription;
-                const keyFeatures = problemDescription.keyFeatures;
+                const keyFeatures = problemDescription.keyFeatures ? problemDescription.keyFeatures.split(',').join(', ') : '';
                 const dataComplexity = problemDescription.dataComplexity;
                 const securityRequirements = problemDescription.securityRequirements;
                 
@@ -1259,7 +1324,7 @@ OUTPUT: Return ONLY a valid JSON object with this exact structure:
                   <p><strong>Project Type:</strong> {problemDescription.projectDescription || 'Not specified'}</p>
                   <p><strong>Industry:</strong> {problemDescription.industry || 'Not specified'}</p>
                   <p><strong>Expected Users:</strong> {problemDescription.userVolume ? `${parseInt(problemDescription.userVolume).toLocaleString()}+ users` : 'Not specified'}</p>
-                  <p><strong>Key Features:</strong> {problemDescription.keyFeatures || 'Not specified'}</p>
+                  <p><strong>Key Features:</strong> {problemDescription.keyFeatures ? problemDescription.keyFeatures.split(',').map((f: string) => f.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())).join(', ') : 'Not specified'}</p>
                   <p><strong>Data Complexity:</strong> {problemDescription.dataComplexity || 'Not specified'}</p>
                   <p><strong>Security Requirements:</strong> {problemDescription.securityRequirements || 'Not specified'}</p>
                 </div>
@@ -1267,7 +1332,7 @@ OUTPUT: Return ONLY a valid JSON object with this exact structure:
                   <p className="text-sm text-blue-800">
                     <strong>Summary:</strong> You're building a {problemDescription.projectDescription || 'project'} for the {problemDescription.industry || 'general'} industry, 
                     expecting {problemDescription.userVolume ? `${parseInt(problemDescription.userVolume).toLocaleString()}+ users` : 'an unspecified number of users'}, 
-                    with {problemDescription.keyFeatures || 'standard'} features, 
+                    with {problemDescription.keyFeatures ? problemDescription.keyFeatures.split(',').map((f: string) => f.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())).join(', ') : 'standard'} features, 
                     {problemDescription.dataComplexity || 'moderate'} data complexity, 
                     and {problemDescription.securityRequirements || 'standard'} security requirements.
                   </p>
