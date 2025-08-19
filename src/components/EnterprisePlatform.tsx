@@ -1272,12 +1272,6 @@ OUTPUT: Return ONLY a valid JSON object with this exact structure:
                     and {problemDescription.securityRequirements || 'standard'} security requirements.
                   </p>
                 </div>
-                {/* Debug info */}
-                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                  <p className="text-sm text-yellow-800">
-                    <strong>Debug:</strong> This section should be visible. If you can see this, the summary is working!
-                  </p>
-                </div>
               </div>
              
              <div className="max-w-4xl mx-auto space-y-6">
