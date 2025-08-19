@@ -858,44 +858,20 @@ COMPLIANCE TESTING:
       updateProblemDescription: (updates: any) => void;
       updateArchitectureRecommendations: (recommendations: any) => void;
       updateShowRecommendations: (show: boolean) => void;
-    }) => {
-      // Use refs for uncontrolled inputs
-      const projectDescriptionRef = React.useRef<HTMLSelectElement>(null);
-      const industryRef = React.useRef<HTMLSelectElement>(null);
-      const userVolumeRef = React.useRef<HTMLSelectElement>(null);
-
-      // Simple handlers that don't cause re-renders
-      const handleProjectDescriptionChange = () => {
-        if (projectDescriptionRef.current) {
-          updateProblemDescription({ projectDescription: projectDescriptionRef.current.value });
-        }
-      };
-
-      const handleIndustryChange = () => {
-        if (industryRef.current) {
-          updateProblemDescription({ industry: industryRef.current.value });
-        }
-      };
-
-      const handleUserVolumeChange = () => {
-        if (userVolumeRef.current) {
-          updateProblemDescription({ userVolume: userVolumeRef.current.value });
-        }
-      };
+         }) => {
 
      return (
        <div className="max-w-2xl mx-auto space-y-6">
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-           <div>
+                      <div>
              <label className="block text-sm font-medium text-slate-700 mb-2 text-left">
                Project Type
              </label>
-             <select 
-               ref={projectDescriptionRef}
-               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-               defaultValue={problemDescription.projectDescription}
-               onChange={handleProjectDescriptionChange}
-             >
+               <select 
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                value={problemDescription.projectDescription}
+                onChange={(e) => updateProblemDescription({ projectDescription: e.target.value })}
+              >
                <option value="">Select Project Type</option>
                <option value="web-application">Web Application</option>
                <option value="mobile-app">Mobile Application</option>
@@ -995,10 +971,9 @@ COMPLIANCE TESTING:
                Industry
              </label>
                                                                                                                <select 
-                  ref={industryRef}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  defaultValue={problemDescription.industry}
-                  onBlur={handleIndustryChange}
+                  value={problemDescription.industry}
+                  onChange={(e) => updateProblemDescription({ industry: e.target.value })}
                 >
                <option value="">Select Industry</option>
                <option value="healthcare">Healthcare & Life Sciences</option>
@@ -1030,10 +1005,9 @@ COMPLIANCE TESTING:
                Expected Users
              </label>
                                                                                                                <select 
-                  ref={userVolumeRef}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  defaultValue={problemDescription.userVolume}
-                  onBlur={handleUserVolumeChange}
+                  value={problemDescription.userVolume}
+                  onChange={(e) => updateProblemDescription({ userVolume: e.target.value })}
                 >
                <option value="">Select Range</option>
                <option value="1000">Less than 1,000</option>
@@ -1296,6 +1270,12 @@ OUTPUT: Return ONLY a valid JSON object with this exact structure:
                     with {problemDescription.keyFeatures || 'standard'} features, 
                     {problemDescription.dataComplexity || 'moderate'} data complexity, 
                     and {problemDescription.securityRequirements || 'standard'} security requirements.
+                  </p>
+                </div>
+                {/* Debug info */}
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Debug:</strong> This section should be visible. If you can see this, the summary is working!
                   </p>
                 </div>
               </div>
