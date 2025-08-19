@@ -206,6 +206,7 @@ const EnterprisePlatform = () => {
         console.log('⚙️ Updated project config:', updatedConfig);
         console.log('📋 Original compliance from AI:', recommendations.compliance);
         console.log('📋 Normalized compliance:', normalizedCompliance);
+        console.log('📋 Final compliance array:', updatedConfig.compliance);
         
         return updatedConfig;
       });
@@ -223,6 +224,15 @@ const EnterprisePlatform = () => {
       handleIndustryChange(problemDescription.industry);
     }
   }, [problemDescription.industry]);
+
+  // Debug compliance state when navigating to compliance step
+  useEffect(() => {
+    if (activeTab === 'generator' && activeStep === 1) {
+      console.log('🔍 Compliance step activated');
+      console.log('🔍 Current projectConfig.compliance:', projectConfig.compliance);
+      console.log('🔍 Available compliance standards:', complianceStandards.map(s => s.id));
+    }
+  }, [activeTab, activeStep, projectConfig.compliance]);
 
   // Validate and enhance compliance recommendations based on industry
   const validateAndEnhanceCompliance = (recommendations: any, industry: string) => {
@@ -2158,16 +2168,24 @@ OUTPUT: Return ONLY a valid JSON object with this exact structure:
                        </div>
                      )}
 
-                    {/* Compliance Step */}
-                    {activeStep === 1 && (
-                      <div className="space-y-6">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-3">
-                            Compliance Requirements
-                          </label>
-                          <p className="text-sm text-slate-600 mb-4">
-                            Select all compliance standards that apply to your project.
-                          </p>
+                                         {/* Compliance Step */}
+                     {activeStep === 1 && (
+                       <div className="space-y-6">
+                         {/* Debug info */}
+                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                           <h4 className="font-semibold text-yellow-800 mb-2">Debug Info:</h4>
+                           <p className="text-sm text-yellow-700">
+                             Current compliance: {projectConfig.compliance.length > 0 ? projectConfig.compliance.join(', ') : 'None'}
+                           </p>
+                         </div>
+                         
+                         <div>
+                           <label className="block text-sm font-medium text-slate-700 mb-3">
+                             Compliance Requirements
+                           </label>
+                           <p className="text-sm text-slate-600 mb-4">
+                             Select all compliance standards that apply to your project.
+                           </p>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {complianceStandards.map((standard) => (
                               <div 
